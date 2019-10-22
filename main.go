@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 
 	"github.com/emanueljoivo/arrebol/pkg/env"
 	"github.com/emanueljoivo/arrebol/pkg/queue"
@@ -55,9 +56,10 @@ func CreateQueue(w http.ResponseWriter, r *http.Request) {
 func init() {
 	log.Println("Starting Arrebol")
 
-	flag.Parse()
-	flag.Args()
-	flag.Usage()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	env.ValidateEnv()
 }
