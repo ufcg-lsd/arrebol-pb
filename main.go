@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
@@ -11,55 +10,14 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 
 	"github.com/emanueljoivo/arrebol/pkg/env"
 	"github.com/emanueljoivo/arrebol/pkg/queue"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/emanueljoivo/arrebol/pkg/wrapper"
 )
-
-var client *mongo.Client
-
-func GetVersion(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("0.0.1")
-}
-
-func CreateQueue(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("content-type", "application/json")
-
-	var queue queue.Queue
-
-	_ = json.NewDecoder(r.Body).Decode(&queue)
-
-	collection := client.Database(os.Getenv(env.DatabaseName)).Collection(os.Getenv(env.QueueCollection))
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	result, err := collection.InsertOne(ctx, &queue)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		if _, err := w.Write([]byte(`{ "message": "` + err.Error() + `" }`)); err != nil {
-			// the blank field returns the number of bytes written
-			log.Println(err.Error())
-		}
-	}
-
-	if err := json.NewEncoder(w).Encode(result); err != nil {
-		log.Println(err.Error())
-	}
-}
 
 func init() {
 	log.Println("Starting Arrebol")
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
 	env.ValidateEnv()
 }
@@ -72,20 +30,12 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
 
-	clientOpt := options.Client().ApplyURI(os.Getenv(env.DatabaseAddress))
-	client, _ = mongo.Connect(ctx, clientOpt)
-	err := client.Ping(context.TODO(), nil)
-
-	if err != nil {
-		log.Fatal("Error to connect with db: ", err)
-	}
-
-	log.Println("Connected with the database")
+	wrapper.SetUp(ctx)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/version", GetVersion).Methods("GET")
-	router.HandleFunc("/queues", CreateQueue).Methods("POST")
+	router.HandleFunc(env.VersionEndpoint, env.GetVersion).Methods("GET")
+	router.HandleFunc(env.QueueEndpoint, queue.CreateQueue).Methods("POST")
 
 	srv := &http.Server{
 		Addr:         ":8080",
