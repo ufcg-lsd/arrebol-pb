@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#FIXME to read from env or conf file
+#FIXME to read from environment or conf file
 SERVICE_URL="http://localhost:8080"
 
 CREATE_JOB_ENDPOINT=$SERVICE_URL/job
@@ -48,7 +48,7 @@ define_params() {
         job) shift
             parse_job "$@"
             ;;
-        queue) shift
+        queues) shift
             parse_queue
             ;;
         -h | --help | *)

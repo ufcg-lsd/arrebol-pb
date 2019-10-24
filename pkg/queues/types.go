@@ -1,4 +1,4 @@
-package queue
+package queues
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 

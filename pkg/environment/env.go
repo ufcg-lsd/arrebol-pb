@@ -1,4 +1,4 @@
-package env
+package environment
 
 import (
 	"github.com/joho/godotenv"
@@ -14,14 +14,14 @@ func ValidateEnv() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .environment file")
 	}
 
 
 	if _, exists := os.LookupEnv(DatabaseAddress); !exists {
-		log.Fatal("No wrapper address on the environment.")
+		log.Fatal("No storage address on the environment.")
 	} else if _, exists := os.LookupEnv(DatabaseName); !exists {
-		log.Fatal("No wrapper name on the environment.")
+		log.Fatal("No storage name on the environment.")
 	} else {
 		log.Println("Environment loaded with success.")
 	}

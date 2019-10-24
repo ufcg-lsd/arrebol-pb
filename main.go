@@ -11,15 +11,15 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/emanueljoivo/arrebol/pkg/env"
-	"github.com/emanueljoivo/arrebol/pkg/queue"
-	"github.com/emanueljoivo/arrebol/pkg/wrapper"
+	"github.com/emanueljoivo/arrebol/pkg/environment"
+	"github.com/emanueljoivo/arrebol/pkg/queues"
+	"github.com/emanueljoivo/arrebol/pkg/storage"
 )
 
 func init() {
 	log.Println("Starting Arrebol")
 
-	env.ValidateEnv()
+	environment.ValidateEnv()
 }
 
 func main() {
@@ -30,12 +30,14 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
 
-	wrapper.SetUp(ctx)
+	storage.SetUp(ctx)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc(env.VersionEndpoint, env.GetVersion).Methods("GET")
-	router.HandleFunc(env.QueueEndpoint, queue.CreateQueue).Methods("POST")
+	router.HandleFunc(environment.GetVersionEndpoint, environment.GetVersion).Methods("GET")
+	router.HandleFunc(environment.GetQueueEndpoint, queues.RetrieveQueue).Methods("GET")
+
+	router.HandleFunc(environment.CreateQueueEndpoint, queues.CreateQueue).Methods("POST")
 
 	srv := &http.Server{
 		Addr:         ":8080",
