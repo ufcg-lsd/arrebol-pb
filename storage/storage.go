@@ -2,8 +2,8 @@ package storage
 
 import (
 	"context"
-	"github.com/emanueljoivo/arrebol/pkg/environment"
-	"github.com/emanueljoivo/arrebol/pkg/queues"
+	"github.com/emanueljoivo/arrebol/models"
+	"github.com/emanueljoivo/arrebol/pkg/env"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +16,7 @@ import (
 var client *mongo.Client
 
 func SetUp(ctx context.Context) {
-	clientOpt := options.Client().ApplyURI(os.Getenv(environment.DatabaseAddress))
+	clientOpt := options.Client().ApplyURI(os.Getenv(env.DatabaseAddress))
 	client, _ = mongo.Connect(ctx, clientOpt)
 	err := client.Ping(context.TODO(), nil)
 
@@ -27,8 +27,8 @@ func SetUp(ctx context.Context) {
 	log.Println("Connected with the storage")
 }
 
-func SaveQueue(q queues.Queue) (interface{}, error) {
-	collection := client.Database(os.Getenv(environment.DatabaseName)).Collection(os.Getenv(environment.QueueCollection))
+func SaveQueue(q models.Queue) (interface{}, error) {
+	collection := client.Database(os.Getenv(env.DatabaseName)).Collection(os.Getenv(env.QueueCollection))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
@@ -36,7 +36,7 @@ func SaveQueue(q queues.Queue) (interface{}, error) {
 	return collection.InsertOne(ctx, &q)
 }
 
-func RetrieveQueue(queueId string) (*queues.Queue, error) {
+func RetrieveQueue(queueId string) (*models.Queue, error) {
 
 	qId, err := primitive.ObjectIDFromHex(queueId)
 
@@ -46,9 +46,9 @@ func RetrieveQueue(queueId string) (*queues.Queue, error) {
 
 	filter := bson.M{"_id": qId}
 
-	var q queues.Queue
+	var q models.Queue
 
-	collection := client.Database(os.Getenv(environment.DatabaseName)).Collection(os.Getenv(environment.QueueCollection))
+	collection := client.Database(os.Getenv(env.DatabaseName)).Collection(os.Getenv(env.QueueCollection))
 
 	ctx, _ := context.WithTimeout(context.Background(), 10 * time.Second)
 

@@ -1,4 +1,4 @@
-package environment
+package env
 
 const GetVersionEndpoint = "/version"
 const CreateQueueEndpoint = "/queues"

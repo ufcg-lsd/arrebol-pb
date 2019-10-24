@@ -11,21 +11,23 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/emanueljoivo/arrebol/pkg/environment"
+	"github.com/emanueljoivo/arrebol/pkg/env"
 	"github.com/emanueljoivo/arrebol/pkg/queues"
-	"github.com/emanueljoivo/arrebol/pkg/storage"
+	"github.com/emanueljoivo/arrebol/storage"
 )
 
 func init() {
 	log.Println("Starting Arrebol")
 
-	environment.ValidateEnv()
+	env.ValidateEnv()
 }
 
 func main() {
 	var wait time.Duration
-	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server "+
+	flag.DurationVar(&wait, "graceful_timeout", time.Second*15, "the duration for which the server "+
 		"gracefully wait for existing connections to finish - e.g. 15s or 1m")
+
+	flag.Parse()
 
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
@@ -34,10 +36,10 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc(environment.GetVersionEndpoint, environment.GetVersion).Methods("GET")
-	router.HandleFunc(environment.GetQueueEndpoint, queues.RetrieveQueue).Methods("GET")
+	router.HandleFunc(env.GetVersionEndpoint, env.GetVersion).Methods("GET")
+	router.HandleFunc(env.GetQueueEndpoint, queues.RetrieveQueue).Methods("GET")
 
-	router.HandleFunc(environment.CreateQueueEndpoint, queues.CreateQueue).Methods("POST")
+	router.HandleFunc(env.CreateQueueEndpoint, queues.CreateQueue).Methods("POST")
 
 	srv := &http.Server{
 		Addr:         ":8080",

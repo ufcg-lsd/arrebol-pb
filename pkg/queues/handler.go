@@ -2,7 +2,8 @@ package queues
 
 import (
 	"encoding/json"
-	"github.com/emanueljoivo/arrebol/pkg/storage"
+	"github.com/emanueljoivo/arrebol/models"
+	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 func CreateQueue(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var q Queue
+	var q models.Queue
 
 	err := json.NewDecoder(r.Body).Decode(&q)
 
