@@ -1,18 +1,18 @@
-package queues
+package handler
 
 import (
 	"encoding/json"
-	"github.com/emanueljoivo/arrebol/models"
-	"github.com/emanueljoivo/arrebol/storage"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+
+	"github.com/emanueljoivo/arrebol/pkg"
+	"github.com/gorilla/mux"
 )
 
 func CreateQueue(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var q models.Queue
+	var q pkg.Queue
 
 	err := json.NewDecoder(r.Body).Decode(&q)
 
@@ -20,7 +20,7 @@ func CreateQueue(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error while process the request")
 	}
 
-	res, err := storage.SaveQueue(q)
+	res, err := pkg.SaveQueue(q)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -41,7 +41,7 @@ func RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 
 	queueId := params["id"]
 
-	queue, err := storage.RetrieveQueue(queueId)
+	queue, err := pkg.RetrieveQueue(queueId)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

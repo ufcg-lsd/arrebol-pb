@@ -11,15 +11,18 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/emanueljoivo/arrebol/pkg/env"
-	"github.com/emanueljoivo/arrebol/pkg/queues"
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/emanueljoivo/arrebol/pkg"
+	"github.com/emanueljoivo/arrebol/pkg/handler"
 )
+
+const GetVersionEndpoint = "/version"
+const CreateQueueEndpoint = "/queues"
+const GetQueueEndpoint = "/queues/{id}"
 
 func init() {
 	log.Println("Starting Arrebol")
 
-	env.ValidateEnv()
+	pkg.ValidateEnv()
 }
 
 func main() {
@@ -32,16 +35,16 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
 
-	storage.SetUp(ctx)
+	pkg.SetUp(ctx)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc(env.GetVersionEndpoint, env.GetVersion).Methods("GET")
-	router.HandleFunc(env.GetQueueEndpoint, queues.RetrieveQueue).Methods("GET")
+	router.HandleFunc(GetVersionEndpoint, handler.GetVersion).Methods("GET")
+	router.HandleFunc(GetQueueEndpoint, handler.RetrieveQueue).Methods("GET")
 
-	router.HandleFunc(env.CreateQueueEndpoint, queues.CreateQueue).Methods("POST")
+	router.HandleFunc(CreateQueueEndpoint, handler.CreateQueue).Methods("POST")
 
-	srv := &http.Server{
+	server := &http.Server{
 		Addr:         ":8080",
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
@@ -50,7 +53,7 @@ func main() {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			log.Println(err.Error())
 		}
 	}()
@@ -63,7 +66,7 @@ func main() {
 
 	<-c
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		log.Println(err.Error())
 	}
 
