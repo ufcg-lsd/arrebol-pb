@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/emanueljoivo/arrebol/pkg"
 	"github.com/emanueljoivo/arrebol/pkg/handler"
 )
 
@@ -22,7 +21,7 @@ const GetQueueEndpoint = "/queues/{id}"
 func init() {
 	log.Println("Starting Arrebol")
 
-	pkg.ValidateEnv()
+	ValidateEnv()
 }
 
 func main() {
@@ -35,7 +34,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
 
-	pkg.SetUp(ctx)
+	SetUp(ctx)
 
 	router := mux.NewRouter()
 
