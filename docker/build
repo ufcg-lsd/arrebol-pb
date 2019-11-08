@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o xtrace
+
+readonly VERSION="golang"
+readonly OBJ_FILE_PATH="./arrebol"
+
+if [[ -f "${OBJ_FILE_PATH}" ]]; then
+    echo "Put the object file of the program on the same level of this build script"
+    exit 1
+else
+    sudo docker build --build-arg OBJECT_FILE=${OBJ_FILE_PATH} --no-cache -t ufcglsd/arrebol:${VERSION} .
+fi
