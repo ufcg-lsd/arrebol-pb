@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/emanueljoivo/arrebol/pkg"
+	"github.com/emanueljoivo/arrebol/pkg/handler"
 	"log"
 	"net/http"
 	"os"
@@ -10,14 +12,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-
-	"github.com/emanueljoivo/arrebol/pkg"
-	"github.com/emanueljoivo/arrebol/pkg/handler"
 )
 
-const GetVersionEndpoint = "/version"
+const GetVersionEndpoint =  "/version"
 const CreateQueueEndpoint = "/queues"
-const GetQueueEndpoint = "/queues/{id}"
+const GetQueueEndpoint =    "/queues/{id}"
 
 func init() {
 	log.Println("Starting Arrebol")
