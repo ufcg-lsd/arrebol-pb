@@ -1,0 +1,34 @@
+version: "3.7"
+
+services:
+  db:
+    image: mongo:4.2.0-bionic
+    networks:
+      - arrebol
+    ports:
+      - "27017-27019:27017-27019"
+    volumes:
+      - arrebol:/data/arrebol
+    deploy:
+      mode: global
+
+  arrebol:
+    image: ufcglsd/arrebol:golang
+    env_file:
+      - ./.env
+    networks:
+      - arrebol
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+    ports:
+      - "8080:8080"
+
+volumes:
+  arrebol: {}
+
+networks:
+  arrebol:
+    driver: overlay
