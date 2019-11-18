@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/emanueljoivo/arrebol/pkg"
+	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
 )
 
@@ -20,7 +21,7 @@ func CreateQueue(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error while process the request")
 	}
 
-	res, err := pkg.SaveQueue(q)
+	res, err := storage.SaveQueue(q)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -41,7 +42,7 @@ func RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 
 	queueId := params["id"]
 
-	queue, err := pkg.RetrieveQueue(queueId)
+	queue, err := storage.RetrieveQueue(queueId)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

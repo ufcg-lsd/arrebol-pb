@@ -3,73 +3,50 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/emanueljoivo/arrebol/pkg"
-	"github.com/emanueljoivo/arrebol/pkg/handler"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/emanueljoivo/arrebol/api"
+	"github.com/emanueljoivo/arrebol/storage"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const GetVersionEndpoint =  "/version"
-const CreateQueueEndpoint = "/queues"
-const GetQueueEndpoint =    "/queues/{id}"
-
-func init() {
-	log.Println("Starting Arrebol")
-
-	pkg.ValidateEnv()
-}
-
 func main() {
+	const ServerPort = "SERVER_PORT"
+	const DefaultServerPort = "8080"
+
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful_timeout", time.Second*15, "the duration for which the server "+
 		"gracefully wait for existing connections to finish - e.g. 15s or 1m")
+
+	apiPort := flag.String(ServerPort, DefaultServerPort, "Service port")
 
 	flag.Parse()
 
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
 
-	pkg.SetUp(ctx)
+	m := mongo.NewClient(&mongo.Op)
+	s := storage.New(ctx)
+	a := api.New(s)
 
-	router := mux.NewRouter()
-
-	router.HandleFunc(GetVersionEndpoint, handler.GetVersion).Methods("GET")
-	router.HandleFunc(GetQueueEndpoint, handler.RetrieveQueue).Methods("GET")
-
-	router.HandleFunc(CreateQueueEndpoint, handler.CreateQueue).Methods("POST")
-
-	server := &http.Server{
-		Addr:         ":" + os.Getenv(pkg.ServerPort),
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler:      router,
-	}
-
+	// Shutdown gracefully
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			log.Println(err.Error())
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+		<-sigs
+		log.Println("Shutting down service")
+
+		if err := a.Shutdown(&ctx); err != nil {
+			log.Fatal(err.Error())
 		}
 	}()
 
-	log.Println("Service available")
-
-	c := make(chan os.Signal, 1)
-
-	signal.Notify(c, os.Interrupt)
-
-	<-c
-
-	if err := server.Shutdown(ctx); err != nil {
-		log.Println(err.Error())
+	if err := a.Start(*apiPort); err != nil {
+		log.Fatal(err.Error())
 	}
 
-	log.Println("Shutting down service")
-
-	os.Exit(1)
 }

@@ -1,4 +1,4 @@
-package pkg
+package storage
 
 import (
 	"context"
@@ -12,11 +12,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var client *mongo.Client
+const DatabaseAddress = "DATABASE_ADDRESS"
+const DatabaseName = "DATABASE_NAME"
+const QueueCollection = "QUEUE_COLLECTION"
 
-func SetUp(ctx context.Context) {
+type Storage struct {
+	client *mongo.Client
+}
+
+func New(ctx *context.Context, client *mongo.Client) *Storage {
 	clientOpt := options.Client().ApplyURI(os.Getenv(DatabaseAddress))
-	client, _ = mongo.Connect(ctx, clientOpt)
+	client, _ = mongo.Connect(*ctx, clientOpt)
 	err := client.Ping(context.TODO(), nil)
 
 	if err != nil {
@@ -24,10 +30,14 @@ func SetUp(ctx context.Context) {
 	}
 
 	log.Println("Connected with the storage")
+
+	return &Storage{
+		client,
+	}
 }
 
-func SaveQueue(q Queue) (interface{}, error) {
-	collection := client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
+func (s *Storage) SaveQueue(q Queue) (interface{}, error) {
+	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -35,7 +45,7 @@ func SaveQueue(q Queue) (interface{}, error) {
 	return collection.InsertOne(ctx, &q)
 }
 
-func RetrieveQueue(queueId string) (*Queue, error) {
+func (s *Storage) RetrieveQueue(queueId string) (*Queue, error) {
 
 	qId, err := primitive.ObjectIDFromHex(queueId)
 
@@ -47,7 +57,7 @@ func RetrieveQueue(queueId string) (*Queue, error) {
 
 	var q Queue
 
-	collection := client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
+	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
 
 	ctx, er := context.WithTimeout(context.Background(), 10*time.Second)
 
