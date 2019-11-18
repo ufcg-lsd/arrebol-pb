@@ -1,71 +1,75 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/gorilla/mux"
-	"github.com/satori/go.uuid"
-	"io/ioutil"
+	"context"
+	"flag"
+	"github.com/emanueljoivo/arrebol/pkg"
+	"github.com/emanueljoivo/arrebol/pkg/handler"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/gorilla/mux"
 )
 
-type JobSpec struct {
-	Label      string `json:"label"`
-	TasksSpecs []struct {
-		Id       string   `json:"id"`
-		Commands []string `json:"commands"`
-	} `json:"tasksSpecs,omitempty"`
-}
+const GetVersionEndpoint =  "/version"
+const CreateQueueEndpoint = "/queues"
+const GetQueueEndpoint =    "/queues/{id}"
 
-type Job struct {
-	Id      string  `json:"id"`
-	JobSpec JobSpec `json:"jobSpec"`
-}
+func init() {
+	log.Println("Starting Arrebol")
 
-var Jobs []Job
-
-func GetVersion(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("1.0")
-}
-
-func CreateJob(w http.ResponseWriter, r *http.Request) {
-
-	reqBody, _ := ioutil.ReadAll(r.Body)
-
-	var newSpec JobSpec
-	json.Unmarshal(reqBody, &newSpec)
-
-	newJobId := uuid.Must(uuid.NewV4()).String()
-	var newJob Job = Job{Id: newJobId, JobSpec: newSpec}
-
-	Jobs = append(Jobs, newJob)
-
-	//response
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newJob.Id)
-}
-
-func GetJob(w http.ResponseWriter, r *http.Request) {
-
-	//TODO: what if there is no job for job_id?
-	vars := mux.Vars(r)
-	job_id := vars["id"]
-
-	for _, job := range Jobs {
-		if job.Id == job_id {
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(job)
-		}
-	}
+	pkg.ValidateEnv()
 }
 
 func main() {
+	var wait time.Duration
+	flag.DurationVar(&wait, "graceful_timeout", time.Second*15, "the duration for which the server "+
+		"gracefully wait for existing connections to finish - e.g. 15s or 1m")
+
+	flag.Parse()
+
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
+
+	pkg.SetUp(ctx)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/version", GetVersion).Methods("GET")
-	router.HandleFunc("/job", CreateJob).Methods("POST")
-	router.HandleFunc("/job/{id}", GetJob).Methods("GET")
+	router.HandleFunc(GetVersionEndpoint, handler.GetVersion).Methods("GET")
+	router.HandleFunc(GetQueueEndpoint, handler.RetrieveQueue).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	router.HandleFunc(CreateQueueEndpoint, handler.CreateQueue).Methods("POST")
+
+	server := &http.Server{
+		Addr:         ":" + os.Getenv(pkg.ServerPort),
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      router,
+	}
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Println(err.Error())
+		}
+	}()
+
+	log.Println("Service available")
+
+	c := make(chan os.Signal, 1)
+
+	signal.Notify(c, os.Interrupt)
+
+	<-c
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Println(err.Error())
+	}
+
+	log.Println("Shutting down service")
+
+	os.Exit(1)
 }
