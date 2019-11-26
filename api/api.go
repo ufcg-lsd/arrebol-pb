@@ -2,12 +2,10 @@ package api
 
 import (
 	"context"
-	"log"
-	"net/http"
-
-	"github.com/emanueljoivo/arrebol/handler"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
+	"log"
+	"net/http"
 )
 
 type API struct {
@@ -30,7 +28,7 @@ func (a *API) Start(port string) error {
 	return a.server.ListenAndServe()
 }
 
-func (a *API) Shutdown(context *context.Context) error {
+func (a *API) Shutdown() error {
 	return a.server.Shutdown(context.Background())
 }
 
@@ -42,11 +40,14 @@ func (a *API) bootRouter() *mux.Router {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc(GetVersionEndpoint, handler.GetVersion).Methods("GET")
-	router.HandleFunc(GetQueueEndpoint, handler.RetrieveQueue).Methods("GET")
+	router.HandleFunc(GetVersionEndpoint, a.GetVersion).Methods("GET")
+	router.HandleFunc(GetQueueEndpoint, a.RetrieveQueue).Methods("GET")
 
-	router.HandleFunc(CreateQueueEndpoint, handler.CreateQueue).Methods("POST")
+	router.HandleFunc(CreateQueueEndpoint, a.CreateQueue).Methods("POST")
 
 	return router
 
 }
+
+
+

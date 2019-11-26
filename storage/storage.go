@@ -7,12 +7,9 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const DatabaseAddress = "DATABASE_ADDRESS"
 const DatabaseName = "DATABASE_NAME"
 const QueueCollection = "QUEUE_COLLECTION"
 
@@ -20,9 +17,10 @@ type Storage struct {
 	client *mongo.Client
 }
 
-func New(ctx *context.Context, client *mongo.Client) *Storage {
-	clientOpt := options.Client().ApplyURI(os.Getenv(DatabaseAddress))
-	client, _ = mongo.Connect(*ctx, clientOpt)
+func New(client *mongo.Client, wait time.Duration) *Storage {
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
+	client, _ = mongo.Connect(ctx)
 	err := client.Ping(context.TODO(), nil)
 
 	if err != nil {
@@ -36,7 +34,7 @@ func New(ctx *context.Context, client *mongo.Client) *Storage {
 	}
 }
 
-func (s *Storage) SaveQueue(q Queue) (interface{}, error) {
+func (s *Storage) SaveQueueSpec(q QueueSpec) (interface{}, error) {
 	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -45,17 +43,10 @@ func (s *Storage) SaveQueue(q Queue) (interface{}, error) {
 	return collection.InsertOne(ctx, &q)
 }
 
-func (s *Storage) RetrieveQueue(queueId string) (*Queue, error) {
+func (s *Storage) RetrieveQueue(queueId string) (*QueueSpec, error) {
+	filter := bson.M{"_id": queueId}
 
-	qId, err := primitive.ObjectIDFromHex(queueId)
-
-	if err != nil {
-		log.Println("Queue id with wrong shape: " + queueId)
-	}
-
-	filter := bson.M{"_id": qId}
-
-	var q Queue
+	var q QueueSpec
 
 	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
 
@@ -68,4 +59,9 @@ func (s *Storage) RetrieveQueue(queueId string) (*Queue, error) {
 	e := collection.FindOne(ctx, filter).Decode(&q)
 
 	return &q, e
+}
+
+type QueueSpec struct {
+	ID   string `json:"id,omitempty" bson:"_id,omitempty"`
+	Name string `json:"name" bson:"name"`
 }

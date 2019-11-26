@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"flag"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 	"os/signal"
@@ -26,11 +26,9 @@ func main() {
 
 	flag.Parse()
 
-	ctx, cancel := context.WithTimeout(context.Background(), wait)
-	defer cancel()
-
-	m := mongo.NewClient(&mongo.Op)
-	s := storage.New(ctx)
+	clientOpt := options.Client().ApplyURI(os.Getenv("DATABASE_ADDRESS"))
+	m, _ := mongo.NewClient(clientOpt)
+	s := storage.New(m, wait)
 	a := api.New(s)
 
 	// Shutdown gracefully
@@ -40,8 +38,8 @@ func main() {
 		<-sigs
 		log.Println("Shutting down service")
 
-		if err := a.Shutdown(&ctx); err != nil {
-			log.Fatal(err.Error())
+		if err := a.Shutdown(); err != nil {
+			log.Printf("Failed to shutdown the server: %v", err)
 		}
 	}()
 
