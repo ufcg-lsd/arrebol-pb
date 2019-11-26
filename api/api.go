@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
 )
@@ -20,6 +21,7 @@ func New(storage *storage.Storage) *API {
 }
 
 func (a *API) Start(port string) error {
+	a.createDefault()
 	a.server = &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),
@@ -32,21 +34,31 @@ func (a *API) Shutdown() error {
 	return a.server.Shutdown(context.Background())
 }
 
+func (a *API) createDefault() {
+	id, e := primitive.ObjectIDFromHex("000000000000")
+	if e != nil {
+		log.Println(e.Error())
+	}
+	q := &storage.Queue{
+		Name: "Default",
+		ID: id,
+	}
+	_, err := a.storage.SaveQueue(q)
+
+	if err != nil {
+		log.Fatalln("error while trying create the default queue")
+	}
+}
+
 func (a *API) bootRouter() *mux.Router {
-
-	const GetVersionEndpoint = "/version"
-	const CreateQueueEndpoint = "/queues"
-	const GetQueueEndpoint = "/queues/{id}"
-
 	router := mux.NewRouter()
 
-	router.HandleFunc(GetVersionEndpoint, a.GetVersion).Methods("GET")
-	router.HandleFunc(GetQueueEndpoint, a.RetrieveQueue).Methods("GET")
+	router.HandleFunc("/v1/version", a.GetVersion).Methods(http.MethodGet)
 
-	router.HandleFunc(CreateQueueEndpoint, a.CreateQueue).Methods("POST")
+	router.HandleFunc("/v1/queues/{queueId}", a.RetrieveQueue).Methods(http.MethodGet)
+	router.HandleFunc("/v1/queues", a.CreateQueue).Methods(http.MethodPost)
 
 	return router
-
 }
 
 

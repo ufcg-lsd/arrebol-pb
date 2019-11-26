@@ -3,9 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
-	"github.com/hashicorp/go-uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
 )
@@ -14,8 +15,8 @@ const VersionTag = "0.0.1"
 const VersionName = "Havana"
 
 type Version struct {
-	Tag  string `json:"tag"`
-	Name string `json:"name"`
+	Tag  string `json:"Tag"`
+	Name string `json:"Name"`
 }
 
 var (
@@ -24,7 +25,7 @@ var (
 )
 
 func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
-	var q storage.QueueSpec
+	var q storage.Queue
 
 	err := json.NewDecoder(r.Body).Decode(&q)
 
@@ -32,26 +33,30 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 		log.Println(ProcReqErr)
 	}
 
-	q.ID, _ = uuid.GenerateUUID()
+	id := primitive.NewObjectID()
+	q.ID = id
 
-	res, err := a.storage.SaveQueueSpec(q)
+	_, err = a.storage.SaveQueue(&q)
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, notOkResponse(err))
+		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
 	} else {
-		write(w, http.StatusCreated, res)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, id.Hex())
 	}
 }
 
 func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	queueId := params["id"]
+	queueId := params["queueId"]
 
 	queue, err := a.storage.RetrieveQueue(queueId)
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, notOkResponse(err))
+		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+
 	} else {
 		write(w, http.StatusOK, queue)
 	}
@@ -61,8 +66,8 @@ func (a *API) GetVersion(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
 }
 
-func notOkResponse(err error) []byte {
-	return []byte(`{"message": ` + err.Error())
+func notOkResponse(err string) []byte {
+	return []byte(`{"Message": ` + err)
 }
 
 func write(w http.ResponseWriter, statusCode int, i interface{}) {

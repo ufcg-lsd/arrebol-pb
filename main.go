@@ -11,6 +11,7 @@ import (
 
 	"github.com/emanueljoivo/arrebol/api"
 	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -25,6 +26,12 @@ func main() {
 	apiPort := flag.String(ServerPort, DefaultServerPort, "Service port")
 
 	flag.Parse()
+
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Println("No .env file found")
+	}
 
 	clientOpt := options.Client().ApplyURI(os.Getenv("DATABASE_ADDRESS"))
 	m, _ := mongo.NewClient(clientOpt)
