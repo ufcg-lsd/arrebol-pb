@@ -11,7 +11,7 @@ import (
 )
 
 const DatabaseName = "DATABASE_NAME"
-const JobCollection = "QUEUE_COLLECTION"
+const QueueCollection = "QUEUE_COLLECTION"
 const DefaultQueueID = "default-uuid"
 
 type Storage struct {
@@ -39,7 +39,7 @@ func New(client *mongo.Client, wait time.Duration) *Storage {
 	return storage
 }
 
-func getObjectIDFromDefault() (primitive.ObjectID, error){
+func getObjectIDFromDefault() (primitive.ObjectID, error) {
 	src := []byte(DefaultQueueID)
 
 	dst := make([]byte, hex.EncodedLen(len(src)))
@@ -54,14 +54,20 @@ func CreateDefault(storage *Storage) {
 	if err != nil {
 		log.Println(err.Error())
 	}
-	q := &Queue{
-		Name: "Default",
-		ID: id,
-	}
-	_, err = storage.SaveQueue(q)
+
+	_, err = storage.RetrieveQueue(id.Hex())
 
 	if err != nil {
-		log.Fatalln("error while trying create the default queue")
+		q := &Queue{
+			Name: "Default",
+			ID:   id,
+		}
+		_, err = storage.SaveQueue(q)
+
+		if err != nil {
+			log.Fatalln("error while trying create the default queue")
+		}
+	} else {
+		log.Println("Queue default already exists")
 	}
 }
-

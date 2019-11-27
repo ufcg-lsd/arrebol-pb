@@ -50,20 +50,36 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	queueId := params["queueId"]
+	queueId := params["qid"]
 
 	queue, err := a.storage.RetrieveQueue(queueId)
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
-
 	} else {
-		write(w, http.StatusOK, queue)
+		response := responseFromQueue(queue)
+		write(w, http.StatusOK, response)
+	}
+}
+
+func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
+	var response []*QueueResponse
+
+	queues, err := a.storage.RetrieveQueues()
+
+	if err != nil {
+		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+	} else {
+		for i := 0; i < len(queues); i++ {
+			curQueue := responseFromQueue(queues[i])
+			response = append(response, curQueue)
+		}
+		write(w, http.StatusOK, response)
 	}
 }
 
 func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
-	var jobSpec storage.JobSpec
+	var jobSpec JobSpec
 
 	err := json.NewDecoder(r.Body).Decode(&jobSpec)
 
@@ -73,7 +89,9 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 
 	id := primitive.NewObjectID()
 
-	_, err = a.storage.SaveJob(&jobSpec, id)
+	job := jobFromSpec(jobSpec, id)
+
+	_, err = a.storage.SaveJob(job, id)
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
@@ -99,4 +117,24 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	if err := json.NewEncoder(w).Encode(i); err != nil {
 		log.Println(EncodeResErr)
 	}
+}
+
+type QueueResponse struct {
+	ID string `json:"ID"`
+	Name string `json:"Name"`
+	PendingTasks uint `json:"PendingTasks"`
+	RunningTasks uint `json:"RunningTasks"`
+	Nodes uint `json:"Nodes"`
+	Workers uint `json:"Workers"`
+}
+
+type JobSpec struct {
+	Label string `json:"Label"`
+	Tasks []TaskSpec `json:"Tasks"`
+}
+
+type TaskSpec struct {
+	ID string  `json:"ID"`
+	Config map[string]interface{} `json:"Config"`
+	Commands []string `json:"Commands"`
 }
