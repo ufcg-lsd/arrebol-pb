@@ -188,19 +188,19 @@ func (s *Storage) RetrieveQueues() ([]*Queue, error) {
 	return queues, nil
 }
 
-func (s *Storage) SaveJob(job *Job, objId primitive.ObjectID) (*mongo.InsertOneResult, error) {
+func (s *Storage) SaveJob(job *Job) error {
 	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return collection.InsertOne(ctx, &job)
+	filter := bson.D{{ }}
 }
 
 func (s *Storage) RetrieveJob(jobId string) (*Job, error) {
 	id, _ := primitive.ObjectIDFromHex(jobId)
 
-	filter := bson.M{"_ID": id}
+	filter := bson.M{"_id": id}
 
 	var job Job
 

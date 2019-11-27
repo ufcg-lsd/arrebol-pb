@@ -100,8 +100,13 @@ func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	var jobSpec JobSpec
+	params := mux.Vars(r)
 
-	err := json.NewDecoder(r.Body).Decode(&jobSpec)
+	queueId := params["qid"]
+	// retrieve queue from db
+	queue, err := a.storage.RetrieveQueue(queueId)
+	// mount job
+	err = json.NewDecoder(r.Body).Decode(&jobSpec)
 
 	if err != nil {
 		log.Println(ProcReqErr)
@@ -110,8 +115,10 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	id := primitive.NewObjectID()
 
 	job := jobFromSpec(jobSpec, id)
-
-	_, err = a.storage.SaveJob(job, id)
+	// updateQueue
+	queue.Jobs = append(queue.Jobs, job)
+	a.storage.
+	broker.Register(job);
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
@@ -152,7 +159,7 @@ func responseFromQueue(queue *storage.Queue) *QueueResponse {
 	}
 }
 
-func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) *storage.Job {
+func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) storage.Job {
 	var tasks []storage.Task
 
 	taskSpecs := jobSpec.Tasks
@@ -166,7 +173,7 @@ func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) *storage.Job {
 		})
 	}
 
-	return &storage.Job{
+	return storage.Job{
 		ID:    id,
 		Label: jobSpec.Label,
 		State: storage.Pending,
