@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
 )
@@ -21,7 +20,6 @@ func New(storage *storage.Storage) *API {
 }
 
 func (a *API) Start(port string) error {
-	a.createDefault()
 	a.server = &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),
@@ -32,22 +30,6 @@ func (a *API) Start(port string) error {
 
 func (a *API) Shutdown() error {
 	return a.server.Shutdown(context.Background())
-}
-
-func (a *API) createDefault() {
-	id, e := primitive.ObjectIDFromHex("000000000000")
-	if e != nil {
-		log.Println(e.Error())
-	}
-	q := &storage.Queue{
-		Name: "Default",
-		ID: id,
-	}
-	_, err := a.storage.SaveQueue(q)
-
-	if err != nil {
-		log.Fatalln("error while trying create the default queue")
-	}
 }
 
 func (a *API) bootRouter() *mux.Router {

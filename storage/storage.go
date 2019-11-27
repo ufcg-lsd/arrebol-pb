@@ -2,17 +2,17 @@ package storage
 
 import (
 	"context"
+	"encoding/hex"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
-	"os"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const DatabaseName = "DATABASE_NAME"
-const QueueCollection = "QUEUE_COLLECTION"
+const JobCollection = "QUEUE_COLLECTION"
+const DefaultQueueID = "default-uuid"
 
 type Storage struct {
 	client *mongo.Client
@@ -30,40 +30,38 @@ func New(client *mongo.Client, wait time.Duration) *Storage {
 
 	log.Println("Connected with the storage")
 
-	return &Storage{
+	storage := &Storage{
 		client,
 	}
+
+	CreateDefault(storage)
+
+	return storage
 }
 
-func (s *Storage) SaveQueue(q *Queue) (*mongo.InsertOneResult, error) {
-	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
+func getObjectIDFromDefault() (primitive.ObjectID, error){
+	src := []byte(DefaultQueueID)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	dst := make([]byte, hex.EncodedLen(len(src)))
+	hex.Encode(dst, src)
 
-	return collection.InsertOne(ctx, &q)
+	return primitive.ObjectIDFromHex(string(dst))
 }
 
-func (s *Storage) RetrieveQueue(queueId string) (*Queue, error) {
-	id, _ := primitive.ObjectIDFromHex(queueId)
-	filter := bson.M{"_id": id}
+func CreateDefault(storage *Storage) {
+	id, err := getObjectIDFromDefault()
 
-	var q Queue
-
-	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
-
-	ctx, er := context.WithTimeout(context.Background(), 10*time.Second)
-
-	if er != nil {
-		log.Println("Request timeout")
+	if err != nil {
+		log.Println(err.Error())
 	}
+	q := &Queue{
+		Name: "Default",
+		ID: id,
+	}
+	_, err = storage.SaveQueue(q)
 
-	e := collection.FindOne(ctx, filter).Decode(&q)
-
-	return &q, e
+	if err != nil {
+		log.Fatalln("error while trying create the default queue")
+	}
 }
 
-type Queue struct {
-	ID   primitive.ObjectID `json:"ID,omitempty" bson:"_id,omitempty"`
-	Name string `json:"Name" bson:"name"`
-}

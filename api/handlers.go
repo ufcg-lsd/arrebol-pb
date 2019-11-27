@@ -62,6 +62,28 @@ func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
+	var jobSpec storage.JobSpec
+
+	err := json.NewDecoder(r.Body).Decode(&jobSpec)
+
+	if err != nil {
+		log.Println(ProcReqErr)
+	}
+
+	id := primitive.NewObjectID()
+
+	_, err = a.storage.SaveJob(&jobSpec, id)
+
+	if err != nil {
+		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, id.Hex())
+	}
+}
+
 func (a *API) GetVersion(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
 }
