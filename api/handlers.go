@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
+	"time"
 )
 
 const VersionTag = "0.0.1"
@@ -26,6 +27,15 @@ type QueueResponse struct {
 	RunningTasks uint   `json:"RunningTasks"`
 	Nodes        uint   `json:"Nodes"`
 	Workers      uint   `json:"Workers"`
+}
+
+type JobResponse struct {
+	ID        string     `json:"ID"`
+	Label     string     `json:"Label"`
+	State     string     `json:"State"`
+	CreatedAt time.Time  `json:"CreatedAt"`
+	UpdatedAt time.Time  `json:"UpdatedAt"`
+	Tasks     []TaskSpec `json:"Tasks"`
 }
 
 type JobSpec struct {

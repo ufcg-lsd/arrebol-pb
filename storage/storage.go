@@ -253,7 +253,7 @@ func (s *Storage) SaveCommands(commands []*Command) {
 //
 //log.Printf("updated %v", res)
 
-func (s *Storage) RetrieveJobByQueue(jobId string, queueId string) (*Job, error) {
+func (s *Storage) RetrieveJobByQueue(jobId string, queueId string) (*Job, []*Task, []*Command, error) {
 
 	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(JobCollection))
 
@@ -269,9 +269,48 @@ func (s *Storage) RetrieveJobByQueue(jobId string, queueId string) (*Job, error)
 	err := collection.FindOne(ctx, filter).Decode(&job)
 
 	if err != nil {
-		log.Printf("%s not found in db", jid.Hex())
+		log.Printf("%s not found", jid.Hex())
 	}
-	return &job, err
+
+	tasks := s.RetrieveTasksByJob(jobId)
+	cmds := s.RetrieveCommandsByTask()
+
+
+	return &job, &tasks err
+}
+
+func (s *Storage) RetrieveTasksByJob(jobID string) ([]*Task) {
+	coll := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(TaskCollection))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"job_id": jobID}
+
+	cursor, err := coll.Find(ctx, filter)
+
+	if err != nil {
+		log.Println("failed to retrieve tasks")
+	}
+
+	var tasks []*Task
+	if cursor != nil {
+		for cursor.Next(context.TODO()) {
+			var task Task
+			err = cursor.Decode(&task)
+			if err != nil {
+				log.Println("failed to decode job")
+			}
+			tasks = append(tasks, &task)
+		}
+		if err = cursor.Err(); err != nil {
+			log.Printf("cursor error %v\n", err)
+		}
+
+		_ = cursor.Close(context.TODO())
+	}
+
+	return tasks
 }
 
 func (s *Storage) RetrieveJobsByQueueID(queueID string) ([]*Job, error) {
