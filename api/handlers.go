@@ -56,7 +56,6 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 
 	id := primitive.NewObjectID()
 	q.ID = id
-	q.Jobs = make([]storage.Job, 100)
 
 	_, err = a.storage.SaveQueue(&q)
 
@@ -116,7 +115,7 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 
 	job := jobFromSpec(jobSpec, id)
 	log.Println(job)
-	a.storage.EnqueueJob(&job, queueId)
+	a.storage.SaveJob(&job, queueId)
 
 	// broker.Register(job);
 
@@ -134,12 +133,12 @@ func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 
 	queueId := params["qid"]
 
-	queue, err := a.storage.RetrieveQueue(queueId)
+	jobs, err := a.storage.RetrieveJobsByQueueID(queueId)
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
 	} else {
-		write(w, http.StatusOK, queue.Jobs)
+		write(w, http.StatusOK, jobs)
 	}
 }
 
@@ -177,19 +176,6 @@ func (a *API) GetVersion(w http.ResponseWriter, r *http.Request) {
 func responseFromQueue(queue *storage.Queue) *QueueResponse {
 	var pendingTasks uint
 	var runningTasks uint
-	jobs := queue.Jobs
-
-	for i := 0; i < len(jobs); i++ {
-		tasks := jobs[i].Tasks
-		for j := 0; j < len(tasks); j++ {
-			if tasks[j].State == storage.Pending {
-				pendingTasks++
-			}
-			if tasks[j].State == storage.Running {
-				runningTasks++
-			}
-		}
-	}
 
 	return &QueueResponse{
 		ID:           queue.ID.Hex(),
