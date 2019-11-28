@@ -106,7 +106,6 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 
 	queueId := params["qid"]
 
-	// mount job
 	err := json.NewDecoder(r.Body).Decode(&jobSpec)
 
 	if err != nil {
@@ -157,6 +156,18 @@ func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 	} else {
 		write(w, http.StatusOK, job)
 	}
+}
+
+func (a *API) AddNode(w http.ResponseWriter, r *http.Request) {
+	write(w, http.StatusAccepted, `{"message": "no support yet"}`)
+}
+
+func (a *API) RetrieveNode(w http.ResponseWriter, r *http.Request) {
+	write(w, http.StatusAccepted, `{"message": "no support yet"}`)
+}
+
+func (a *API) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
+	write(w, http.StatusAccepted, `{"message": "no support yet"}`)
 }
 
 func (a *API) GetVersion(w http.ResponseWriter, r *http.Request) {

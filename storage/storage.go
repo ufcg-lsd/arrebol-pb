@@ -207,28 +207,30 @@ func (s *Storage) EnqueueJob(job *Job, queueId string) {
 }
 
 func (s *Storage) RetrieveJobByQueue(jobId string, queueId string) (*Job, error) {
-	qid := generateObjID(queueId)
-	jid, _ := primitive.ObjectIDFromHex(jobId)
-
-	filter := bson.D{
-		{"_id", qid},
-		{"$and",
-			bson.D{ {"$in",  bson.D{{"jobs", jid}} }},
-		},
-	}
-
-	var job Job
 
 	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	err := collection.FindOne(ctx, filter).Decode(&job)
-	log.Printf("%v", job)
+	jid, _ := primitive.ObjectIDFromHex(jobId)
+	qid := generateObjID(queueId)
+	filter := bson.M{ "_id" : qid }
+
+	var queue Queue
+
+	err := collection.FindOne(ctx, filter).Decode(&queue)
 
 	if err != nil {
 		log.Printf("%s not found in db", jid.Hex())
+	}
+	var job Job
+	jobs := queue.Jobs
+	for _, value := range jobs {
+		if value.ID == jid {
+			job = value
+			break
+		}
 	}
 
 	return &job, err
