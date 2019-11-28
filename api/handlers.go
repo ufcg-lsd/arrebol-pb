@@ -20,27 +20,28 @@ type Version struct {
 }
 
 type QueueResponse struct {
-	ID string `json:"ID"`
-	Name string `json:"Name"`
-	PendingTasks uint `json:"PendingTasks"`
-	RunningTasks uint `json:"RunningTasks"`
-	Nodes uint `json:"Nodes"`
-	Workers uint `json:"Workers"`
+	ID           string `json:"ID"`
+	Name         string `json:"Name"`
+	PendingTasks uint   `json:"PendingTasks"`
+	RunningTasks uint   `json:"RunningTasks"`
+	Nodes        uint   `json:"Nodes"`
+	Workers      uint   `json:"Workers"`
 }
 
 type JobSpec struct {
-	Label string `json:"Label"`
+	Label string     `json:"Label"`
 	Tasks []TaskSpec `json:"Tasks"`
 }
 
 type TaskSpec struct {
-	ID string  `json:"ID"`
-	Config map[string]interface{} `json:"Config"`
-	Commands []string `json:"Commands"`
+	ID       string            `json:"ID"`
+	Config   map[string]string `json:"Config"`
+	Commands []string          `json:"Commands"`
+	Metadata map[string]string `json:"Metadata"`
 }
 
 var (
-	ProcReqErr = errors.New("error while trying to process response")
+	ProcReqErr   = errors.New("error while trying to process response")
 	EncodeResErr = errors.New("error while trying encode response")
 )
 
@@ -55,6 +56,7 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 
 	id := primitive.NewObjectID()
 	q.ID = id
+	q.Jobs = make([]storage.Job, 100)
 
 	_, err = a.storage.SaveQueue(&q)
 
@@ -103,10 +105,9 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	queueId := params["qid"]
-	// retrieve queue from db
-	queue, err := a.storage.RetrieveQueue(queueId)
+
 	// mount job
-	err = json.NewDecoder(r.Body).Decode(&jobSpec)
+	err := json.NewDecoder(r.Body).Decode(&jobSpec)
 
 	if err != nil {
 		log.Println(ProcReqErr)
@@ -115,10 +116,10 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	id := primitive.NewObjectID()
 
 	job := jobFromSpec(jobSpec, id)
-	// updateQueue
-	queue.Jobs = append(queue.Jobs, job)
-	a.storage.
-	broker.Register(job);
+	log.Println(job)
+	a.storage.EnqueueJob(&job, queueId)
+
+	// broker.Register(job);
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
@@ -126,6 +127,35 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, id.Hex())
+	}
+}
+
+func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	queueId := params["qid"]
+
+	queue, err := a.storage.RetrieveQueue(queueId)
+
+	if err != nil {
+		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+	} else {
+		write(w, http.StatusOK, queue.Jobs)
+	}
+}
+
+func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	queueId := params["qid"]
+	jobId := params["jid"]
+
+	job, err := a.storage.RetrieveJobByQueue(jobId, queueId)
+
+	if err != nil {
+		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+	} else {
+		write(w, http.StatusOK, job)
 	}
 }
 
@@ -140,7 +170,7 @@ func responseFromQueue(queue *storage.Queue) *QueueResponse {
 
 	for i := 0; i < len(jobs); i++ {
 		tasks := jobs[i].Tasks
-		for j := 0; j< len(tasks); j++ {
+		for j := 0; j < len(tasks); j++ {
 			if tasks[j].State == storage.Pending {
 				pendingTasks++
 			}
@@ -151,11 +181,11 @@ func responseFromQueue(queue *storage.Queue) *QueueResponse {
 	}
 
 	return &QueueResponse{
-		ID: queue.ID.Hex(),
-		Name: queue.Name,
+		ID:           queue.ID.Hex(),
+		Name:         queue.Name,
 		PendingTasks: pendingTasks,
 		RunningTasks: runningTasks,
-		Nodes: uint(len(queue.Nodes)),
+		Nodes:        uint(len(queue.Nodes)),
 	}
 }
 
@@ -164,10 +194,11 @@ func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) storage.Job {
 
 	taskSpecs := jobSpec.Tasks
 
-	for i := 0; i< len(taskSpecs); i++ {
+	for i := 0; i < len(taskSpecs); i++ {
 		tasks = append(tasks, storage.Task{
 			ID:       taskSpecs[i].ID,
 			Config:   taskSpecs[i].Config,
+			Metadata: taskSpecs[i].Metadata,
 			Commands: taskSpecs[i].Commands,
 			State:    storage.Pending,
 		})
@@ -178,6 +209,8 @@ func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) storage.Job {
 		Label: jobSpec.Label,
 		State: storage.Pending,
 		Tasks: tasks,
+		CreatedAt: id.Timestamp(),
+		UpdatedAt: id.Timestamp(),
 	}
 }
 

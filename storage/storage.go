@@ -35,13 +35,16 @@ type Job struct {
 	Label string             `json:"Label" bson:"label"`
 	State State              `json:"State" bson:"state"`
 	Tasks []Task             `json:"Tasks" bson:"tasks"`
+	CreatedAt time.Time 	 `json:"CreatedAt" bson:"created_at"`
+	UpdatedAt time.Time		 `json:"UpdatedAt" bson:"updated_at"`
 }
 
 type Task struct {
-	ID       string                 `json:"id,omitempty" bson:"_id,omitempty"`
-	Config   map[string]interface{} `json:"Config" bson:"config"`
-	Commands []string               `json:"Commands" bson:"commands"`
-	State    State                  `json:"State" bson:"state"`
+	ID       string            `json:"ID,omitempty" bson:"_id,omitempty"`
+	Config   map[string]string `json:"Config" bson:"config"`
+	Commands []string          `json:"Commands" bson:"commands"`
+	State    State             `json:"State" bson:"state"`
+	Metadata map[string]string `json:"Metadata" bson:"Metadata"`
 }
 
 type ResourceState int8
@@ -57,15 +60,15 @@ func (rs ResourceState) String() string {
 }
 
 type Queue struct {
-	ID   primitive.ObjectID `json:"ID,omitempty" bson:"_id,omitempty"`
-	Name string             `json:"Name" bson:"name"`
-	Jobs []Job              `json:"Jobs" bson:"jobs"`
-	Nodes []ResourceNode 	 		`json:"Nodes" bson:"nodes"`
+	ID    primitive.ObjectID `json:"ID,omitempty" bson:"_id,omitempty"`
+	Name  string             `json:"Name" bson:"name"`
+	Jobs  []Job              `json:"Jobs" bson:"jobs"`
+	Nodes []ResourceNode     `json:"Nodes" bson:"nodes"`
 }
 
 type ResourceNode struct {
-	State ResourceState `json:"State" bson:"state"`
-	Address string `json:"Address" bson:"address"`
+	State   ResourceState `json:"State" bson:"state"`
+	Address string        `json:"Address" bson:"address"`
 }
 
 func New(client *mongo.Client, wait time.Duration) *Storage {
@@ -111,6 +114,8 @@ func CreateDefault(storage *Storage) {
 		q := &Queue{
 			Name: "Default",
 			ID:   id,
+			Jobs: []Job{},
+			Nodes: []ResourceNode{},
 		}
 		_, err = storage.SaveQueue(q)
 
@@ -127,17 +132,14 @@ func (s *Storage) SaveQueue(q *Queue) (*mongo.InsertOneResult, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	q.Jobs = []Job{}
+	q.Nodes = []ResourceNode{}
 
 	return collection.InsertOne(ctx, &q)
 }
 
 func (s *Storage) RetrieveQueue(queueId string) (*Queue, error) {
-	var id primitive.ObjectID
-	if queueId == DefaultQueueID {
-		id, _ = getObjectIDFromDefault()
-	} else {
-		id, _ = primitive.ObjectIDFromHex(queueId)
-	}
+	id := generateObjID(queueId)
 
 	filter := bson.M{"_id": id}
 
@@ -188,19 +190,32 @@ func (s *Storage) RetrieveQueues() ([]*Queue, error) {
 	return queues, nil
 }
 
-func (s *Storage) SaveJob(job *Job) error {
-	collection := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
+func (s *Storage) EnqueueJob(job *Job, queueId string) {
+	coll := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(QueueCollection))
+	job.UpdatedAt = time.Now()
+	id := generateObjID(queueId)
+	filter := bson.D{{"_id", id}}
+	update := bson.D{{"$addToSet", bson.M{
+		"jobs": &job,
+	}}}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	res, err := coll.UpdateOne(context.Background(), filter, update)
 
-	filter := bson.D{{ }}
+	log.Printf("error %v", err)
+
+	log.Printf("updated %v", res)
 }
 
-func (s *Storage) RetrieveJob(jobId string) (*Job, error) {
-	id, _ := primitive.ObjectIDFromHex(jobId)
+func (s *Storage) RetrieveJobByQueue(jobId string, queueId string) (*Job, error) {
+	qid := generateObjID(queueId)
+	jid, _ := primitive.ObjectIDFromHex(jobId)
 
-	filter := bson.M{"_id": id}
+	filter := bson.D{
+		{"_id", qid},
+		{"$and",
+			bson.D{ {"$in",  bson.D{{"jobs", jid}} }},
+		},
+	}
 
 	var job Job
 
@@ -210,10 +225,20 @@ func (s *Storage) RetrieveJob(jobId string) (*Job, error) {
 	defer cancel()
 
 	err := collection.FindOne(ctx, filter).Decode(&job)
+	log.Printf("%v", job)
 
 	if err != nil {
-		log.Printf("%s not found in db", id.Hex())
+		log.Printf("%s not found in db", jid.Hex())
 	}
 
 	return &job, err
+}
+func generateObjID(queueID string) *primitive.ObjectID {
+	var id primitive.ObjectID
+	if queueID == DefaultQueueID {
+		id, _ = getObjectIDFromDefault()
+	} else {
+		id, _ = primitive.ObjectIDFromHex(queueID)
+	}
+	return &id
 }
