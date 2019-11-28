@@ -18,6 +18,7 @@ const DatabaseName = "DATABASE_NAME"
 const QueueCollection = "QUEUE_COLLECTION"
 const JobCollection = "JOB_COLLECTION"
 const TaskCollection = "TASK_COLLECTION"
+const CommandCollection = "COMMAND_COLLECTION"
 const NodeCollection = "NODE_COLLECTION"
 const DefaultQueueID = "default-uuid"
 
@@ -25,29 +26,46 @@ type Storage struct {
 	client *mongo.Client
 }
 
-type State string
+type JobState uint8
 
 const (
-	Pending  State = "Pending"
-	Running  State = "Running"
-	Finished State = "Finished"
-	Failed   State = "Failed"
+	JobPending JobState = iota
+	JobRunning
+	JobFinished
+	JobFailed
 )
+
+func (js JobState) String() string {
+	return [...]string{"Pending, Running, Failed", "Finished"}[js]
+}
 
 type Job struct {
 	ID        primitive.ObjectID `json:"ID,omitempty" bson:"_id,omitempty"`
 	QueueID   string             `json:"QueueID" bson:"queue_id"`
 	Label     string             `json:"Label" bson:"label"`
-	State     State              `json:"State" bson:"state"`
-	Tasks     []Task             `json:"Tasks" bson:"tasks"`
+	State     JobState           `json:"State" bson:"state"`
 	CreatedAt time.Time          `json:"CreatedAt" bson:"created_at"`
 	UpdatedAt time.Time          `json:"UpdatedAt" bson:"updated_at"`
 }
 
+type TaskState uint8
+
+const (
+	TaskPending TaskState = iota
+	TaskRunning
+	TaskFinished
+	TaskFailed
+)
+
+func (ts TaskState) String() string {
+	return [...]string{"Pending, Running, Failed", "Finished"}[ts]
+}
+
 type Task struct {
 	ID       string            `json:"ID,omitempty" bson:"_id,omitempty"`
+	JobID    string            `json:"JobID,omitempty" bson:"job_id,omitempty"`
 	Config   map[string]string `json:"Config" bson:"config"`
-	State    State             `json:"State" bson:"state"`
+	State    TaskState         `json:"State" bson:"state"`
 	Metadata map[string]string `json:"Metadata" bson:"metadata"`
 }
 
@@ -94,7 +112,7 @@ type ResourceNode struct {
 }
 
 var (
-	SaveJobErr = errors.New("error while trying to save job")
+	SaveErr = errors.New("error while trying to save document")
 )
 
 func New(client *mongo.Client, wait time.Duration) *Storage {
@@ -179,16 +197,46 @@ func (s *Storage) RetrieveQueues() ([]*Queue, error) {
 	return queues, nil
 }
 
-func (s *Storage) SaveJob(job *Job, queueId string) {
+func (s *Storage) SaveJob(job *Job) {
 	coll := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(JobCollection))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	job.QueueID = queueId
+
 	_, err := coll.InsertOne(ctx, &job)
 
 	if err != nil {
-		log.Println(SaveJobErr)
+		log.Println(SaveErr)
+	}
+}
+
+func (s *Storage) SaveTasks(tasks []*Task) {
+	coll := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(TaskCollection))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for _, task := range tasks {
+		_, err := coll.InsertOne(ctx, &task)
+
+		if err != nil {
+			log.Println(SaveErr)
+		}
+	}
+}
+
+func (s *Storage) SaveCommands(commands []*Command) {
+	coll := s.client.Database(os.Getenv(DatabaseName)).Collection(os.Getenv(CommandCollection))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for _, cmd := range commands {
+		_, err := coll.InsertOne(ctx, &cmd)
+
+		if err != nil {
+			log.Println(SaveErr)
+		}
 	}
 }
 

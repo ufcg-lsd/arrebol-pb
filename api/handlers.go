@@ -103,7 +103,7 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	var jobSpec JobSpec
 	params := mux.Vars(r)
 
-	queueId := params["qid"]
+	queueID := params["qid"]
 
 	err := json.NewDecoder(r.Body).Decode(&jobSpec)
 
@@ -111,20 +111,20 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 		log.Println(ProcReqErr)
 	}
 
-	id := primitive.NewObjectID()
+	jobID := primitive.NewObjectID()
 
-	job := jobFromSpec(jobSpec, id)
-	log.Println(job)
-	a.storage.SaveJob(&job, queueId)
+	job, tasks, cmds := extractFromSpec(jobSpec, jobID, queueID)
 
-	// broker.Register(job);
+	a.storage.SaveJob(job)
+	a.storage.SaveTasks(tasks)
+	a.storage.SaveCommands(cmds)
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, id.Hex())
+		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, jobID.Hex())
 	}
 }
 
@@ -182,33 +182,43 @@ func responseFromQueue(queue *storage.Queue) *QueueResponse {
 		Name:         queue.Name,
 		PendingTasks: pendingTasks,
 		RunningTasks: runningTasks,
-		Nodes:        uint(len(queue.Nodes)),
+		Nodes:        0,
 	}
 }
 
-func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) storage.Job {
-	var tasks []storage.Task
+func extractFromSpec(spec JobSpec, jobID primitive.ObjectID, queueID string) (*storage.Job,
+	[]*storage.Task, []*storage.Command) {
 
-	taskSpecs := jobSpec.Tasks
+	job := &storage.Job{
+		ID:        jobID,
+		Label:     spec.Label,
+		State:     storage.JobPending,
+		CreatedAt: jobID.Timestamp(),
+		UpdatedAt: jobID.Timestamp(),
+	}
+	job.QueueID = queueID
 
-	for i := 0; i < len(taskSpecs); i++ {
-		tasks = append(tasks, storage.Task{
-			ID:       taskSpecs[i].ID,
-			Config:   taskSpecs[i].Config,
-			Metadata: taskSpecs[i].Metadata,
-			Commands: taskSpecs[i].Commands,
-			State:    storage.Pending,
+	var tss []*storage.Task
+	var cmds []*storage.Command
+
+	for _, task := range spec.Tasks {
+		tss = append(tss, &storage.Task{
+			ID:       task.ID,
+			JobID:    jobID.Hex(),
+			Config:   task.Config,
+			State:    storage.TaskPending,
+			Metadata: task.Metadata,
 		})
+		for _, cmd := range task.Commands {
+			cmds = append(cmds, &storage.Command{
+				ExitCode:   -1,
+				RawCommand: cmd,
+				TaskID:     task.ID,
+				State:      storage.CmdNotStarted,
+			})
+		}
 	}
-
-	return storage.Job{
-		ID:    id,
-		Label: jobSpec.Label,
-		State: storage.Pending,
-		Tasks: tasks,
-		CreatedAt: id.Timestamp(),
-		UpdatedAt: id.Timestamp(),
-	}
+	return job, tss, cmds
 }
 
 func notOkResponse(err string) []byte {
