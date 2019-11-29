@@ -32,10 +32,9 @@ func main() {
 	}
 
 	s := storage.New()
-
+	s.SetUp()
 	defer s.Driver().Close()
 
-	s.UpdateSchema()
 	a := api.New(s)
 
 	// Shutdown gracefully

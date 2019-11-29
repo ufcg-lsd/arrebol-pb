@@ -1,34 +1,42 @@
 version: "3.7"
 
 services:
-  db:
-    image: mongo:4.2.0-bionic
+  arrebol-db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: "postgres"
     networks:
-      - arrebol
+      - arrebol-net
     ports:
-      - "27017-27019:27017-27019"
+      - "5432:5432"
     volumes:
-      - arrebol:/data/arrebol
-    deploy:
-      mode: global
-
-  arrebol:
-    image: ufcglsd/arrebol:golang
-    env_file:
-      - ./.env
+      - arrebol:/var/lib/postgresql/data
+  dba:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "emanueljbm@lsd.ufcg.edu.br"
+      PGADMIN_DEFAULT_PASSWORD: "postgres"
     networks:
-      - arrebol
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
+      - arrebol-net
     ports:
-      - "8080:8080"
+      - 15432:80
+
+#  arrebol:
+#    image: ufcglsd/arrebol:golang
+#    env_file:
+#      - ./.env
+#    networks:
+#      - arrebol
+#    deploy:
+#      replicas: 1
+#      update_config:
+#        parallelism: 1
+#        delay: 10s
+#    ports:
+#      - "8080:8080"
 
 volumes:
   arrebol: {}
 
 networks:
-  arrebol:
-    driver: overlay
+  arrebol-net:

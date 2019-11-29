@@ -2,28 +2,52 @@ package storage
 
 import (
 	"github.com/jinzhu/gorm"
-	"time"
 )
 
 func (s *Storage) CreateSchema() {
-	s.driver.CreateTable(&Queue{})
-	s.driver.CreateTable(&Job{})
-	s.driver.CreateTable(&Task{})
-	s.driver.CreateTable(&Command{})
-}
+	s.driver.DropTable(&Command{}, &TaskConfig{}, &TaskMetadata{},
+		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
 
-func (s *Storage) UpdateSchema() {
-	s.driver.AutoMigrate(&Queue{})
-	s.driver.AutoMigrate(&Job{})
-	s.driver.AutoMigrate(&Task{})
-	s.driver.AutoMigrate(&Command{})
+	s.driver.CreateTable(&Command{}, &TaskConfig{}, &TaskMetadata{},
+		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
+
+	s.driver.AutoMigrate(&Command{}, &TaskConfig{}, &TaskMetadata{},
+		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
+
+	s.Driver().Model(&TaskMetadata{}).AddForeignKey("task_id", "tasks(id)", "CASCADE", "CASCADE")
+	s.Driver().Model(&TaskConfig{}).AddForeignKey("task_id", "tasks(id)", "CASCADE", "CASCADE")
+	s.Driver().Model(&Command{}).AddForeignKey("task_id", "tasks(id)", "CASCADE", "CASCADE")
+
+	s.Driver().Model(&Task{}).AddForeignKey("job_id", "jobs(id)", "CASCADE", "CASCADE")
+
+	s.Driver().Model(&ResourceNode{}).AddForeignKey("queue_id", "queues(id)", "CASCADE", "CASCADE")
+	s.Driver().Model(&Job{}).AddForeignKey("queue_id", "queues(id)", "CASCADE", "CASCADE")
 }
 
 type Queue struct {
-	ID        string         `json:"ID"`
-	Name      string         `json:"Name"`
-	Jobs      []Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
-	Nodes     []ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+	gorm.Model
+	Name  string          `json:"Name"`
+	Jobs  []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
+	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+}
+
+type ResourceState uint8
+
+const (
+	Idle ResourceState = iota
+	Allocated
+	Busy
+)
+
+func (rs ResourceState) String() string {
+	return [...]string{"Idle, Allocated, Busy"}[rs]
+}
+
+type ResourceNode struct {
+	gorm.Model
+	QueueID uint          `json:"QueueID"`
+	State   ResourceState `json:"State"`
+	Address string        `json:"Address"`
 }
 
 type JobState uint8
@@ -40,14 +64,11 @@ func (js JobState) String() string {
 }
 
 type Job struct {
-	ID string `json:"ID"`
-	QueueID string `json:"QueueID"`
-	Label string   `json:"Label"`
-	State JobState `json:"State"`
-	Tasks []Task   `json:"Tasks" gorm:"ForeignKey:JobID"`
-	CreatedAt time.Time `json:"CreatedAt"`
-	UpdatedAt time.Time `json:"UpdatedAt"`
-	DeletedAt time.Time `json:"DeletedAt"`
+	gorm.Model
+	QueueID uint   `json:"QueueID"`
+	Label   string   `json:"Label"`
+	State   JobState `json:"State"`
+	Tasks   []*Task  `json:"Tasks" gorm:"ForeignKey:JobID"`
 }
 
 type TaskState uint8
@@ -65,21 +86,25 @@ func (ts TaskState) String() string {
 
 type Task struct {
 	gorm.Model
-	JobID string `json:"JobID"`
-	Config   []TaskConfig   `json:"Config" gorm:"ForeignKey:TaskID"`
+	JobID    uint           `json:"JobID"`
 	State    TaskState      `json:"State"`
+	Config   []TaskConfig   `json:"Config" gorm:"ForeignKey:TaskID"`
 	Metadata []TaskMetadata `json:"Metadata" gorm:"ForeignKey:TaskID"`
 	Commands []Command      `json:"Commands" gorm:"ForeignKey:TaskID"`
 }
 
 type TaskConfig struct {
-	Key   interface{}
-	Value interface{}
+	gorm.Model
+	TaskID uint
+	Key    string
+	Value  string
 }
 
 type TaskMetadata struct {
-	Key   interface{}
-	Value interface{}
+	gorm.Model
+	TaskID uint
+	Key    string
+	Value  string
 }
 
 type CommandState uint8
@@ -97,26 +122,8 @@ func (cs CommandState) String() string {
 
 type Command struct {
 	gorm.Model
-	TaskID int `json:"TaskID"`
+	TaskID     uint         `json:"TaskID"`
 	ExitCode   int8         `json:"Commands"`
 	RawCommand string       `json:"RawCommand"`
 	State      CommandState `json:"State"`
-}
-
-type ResourceState uint8
-
-const (
-	Idle ResourceState = iota
-	Allocated
-	Busy
-)
-
-func (rs ResourceState) String() string {
-	return [...]string{"Idle, Allocated, Busy"}[rs]
-}
-
-type ResourceNode struct {
-	gorm.Model
-	State   ResourceState `json:"State"`
-	Address string        `json:"Address"`
 }

@@ -37,44 +37,48 @@ func New() *Storage {
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
+
 	driver.LogMode(true)
 
 	storage := &Storage{
 		driver,
 	}
 
-	CreateDefault(storage)
-
 	return storage
+}
+
+func (s *Storage) SetUp() {
+	s.CreateSchema()
+	CreateDefault(s)
 }
 
 func (s *Storage) Driver() *gorm.DB {
 	return s.driver
 }
 
-func (s *Storage) SaveQueue(q *Queue) {
-	s.driver.Create(&q)
+func (s *Storage) SaveQueue(q *Queue) error {
+	return s.driver.Save(&q).Error
 }
 
-func (s *Storage) RetrieveQueue(queueId string) *Queue {
+func (s *Storage) RetrieveQueue(queueId uint) (*Queue, error) {
 	var queue Queue
-
-	s.driver.Where("id = ?", queueId).First(&queue)
-
-	return &queue
+	log.Println(fmt.Sprintf("retrieving queue %d", queueId))
+	err := s.driver.First(&queue, queueId).Error
+	log.Println(queue)
+	return &queue, err
 }
 
-func (s *Storage) RetrieveQueues() []Queue {
-	var queues []Queue
+func (s *Storage) RetrieveQueues() []*Queue {
+	var queues []*Queue
 
 	s.driver.Find(&queues)
 
 	return queues
 }
 
-func (s *Storage) RetrieveTasksByState(queueID string, state TaskState) []Task{
-	var tasksPending []Task
-	queue := s.RetrieveQueue(queueID)
+func (s *Storage) RetrieveTasksByState(queueID uint, state TaskState) []*Task {
+	var tasksPending []*Task
+	queue, _ := s.RetrieveQueue(queueID)
 
 	for _, job := range queue.Jobs {
 		for _, task := range job.Tasks {
@@ -87,9 +91,9 @@ func (s *Storage) RetrieveTasksByState(queueID string, state TaskState) []Task{
 	return tasksPending
 }
 
-
 func (s *Storage) SaveJob(job *Job) {
 	s.driver.Create(&job)
+	s.driver.Save(&job)
 }
 
 //func (s *Storage) RetrieveJobByQueue(jobId string, queueId string) *Job {
@@ -132,13 +136,13 @@ func (s *Storage) SaveJob(job *Job) {
 //
 
 func CreateDefault(storage *Storage) {
-
 	q := &Queue{
-		ID:    "default",
-		Name:  "Default",
+		Name: "Default",
 	}
 
-	if storage.driver.NewRecord(&q) {
+	var queue Queue
+	if err := storage.driver.Where("id = ?", q.ID).First(&queue).Error; err != nil {
+		log.Println(err.Error())
 		storage.SaveQueue(q)
 	} else {
 		log.Println("Default queue already exists")

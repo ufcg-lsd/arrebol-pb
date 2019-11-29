@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
-	"github.com/hashicorp/go-uuid"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -21,7 +21,7 @@ type Version struct {
 }
 
 type QueueResponse struct {
-	ID           string `json:"ID"`
+	ID           uint `json:"ID"`
 	Name         string `json:"Name"`
 	PendingTasks uint   `json:"PendingTasks"`
 	RunningTasks uint   `json:"RunningTasks"`
@@ -30,7 +30,7 @@ type QueueResponse struct {
 }
 
 type JobResponse struct {
-	ID        string     `json:"ID"`
+	ID        uint     `json:"ID"`
 	Label     string     `json:"Label"`
 	State     string     `json:"State"`
 	CreatedAt time.Time  `json:"CreatedAt"`
@@ -69,9 +69,7 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 		log.Println(ProcReqErr)
 	}
 
-	q.ID, _ = uuid.GenerateUUID()
-
-	a.storage.SaveQueue(&q)
+	err = a.storage.SaveQueue(&q)
 
 	if err != nil {
 		write(w, http.StatusBadRequest, ErrorResponse{
@@ -81,20 +79,20 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, q.ID)
+		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, q.ID)
 	}
 }
 
 func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	queueID := params["qid"]
+	queueIDStr := params["qid"]
+	queueID, _ := strconv.Atoi(queueIDStr)
+	queue, err := a.storage.RetrieveQueue(uint(queueID))
 
-	queue := a.storage.RetrieveQueue(queueID)
-
-	if queue.ID == "" {
+	if err != nil {
 		write(w, http.StatusNotFound, ErrorResponse{
-			Message: fmt.Sprintf("Queue with id %s not found", queueID),
+			Message: fmt.Sprintf("Queue with id %d not found", queueID),
 			Status:  http.StatusNotFound,
 		})
 	} else {
@@ -114,7 +112,7 @@ func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	for _, queue := range queues {
 		pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
 		runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-		curQueue := responseFromQueue(&queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+		curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
 		response = append(response, curQueue)
 	}
 	write(w, http.StatusOK, response)
@@ -124,7 +122,7 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	var jobSpec JobSpec
 	params := mux.Vars(r)
 
-	queueID := params["qid"]
+	queueIDStr := params["qid"]
 
 	err := json.NewDecoder(r.Body).Decode(&jobSpec)
 
@@ -134,10 +132,8 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 
 	job := extractFromSpec(jobSpec)
 
-	queue := a.storage.RetrieveQueue(queueID)
-	queue.Jobs = append(queue.Jobs, *job)
-	a.storage.SaveJob(job)
-	a.storage.SaveQueue(queue)
+	queueID, _ := strconv.Atoi(queueIDStr)
+	queue, err := a.storage.RetrieveQueue(uint(queueID))
 
 	if err != nil {
 		write(w, http.StatusInternalServerError, ErrorResponse{
@@ -145,9 +141,18 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 			Status:  http.StatusInternalServerError,
 		})
 	} else {
+		queue.Jobs = append(queue.Jobs, job)
+		err = a.storage.SaveQueue(queue)
+		if err != nil {
+			write(w, http.StatusInternalServerError, ErrorResponse{
+				Message: err.Error(),
+				Status:  http.StatusInternalServerError,
+			})
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, job.ID)
+		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, job.ID)
 	}
 }
 
@@ -217,29 +222,24 @@ func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uin
 }
 
 func extractFromSpec(spec JobSpec) *storage.Job {
-	var tasks []storage.Task
+	var tasks []*storage.Task
 
 	for _, taskSpec := range spec.Tasks {
 		configs := extractConfigs(&taskSpec)
 		metadata := extractMetadata(&taskSpec)
 		commands := extractCommands(&taskSpec)
 
-		tasks = append(tasks, storage.Task{
+		tasks = append(tasks, &storage.Task{
 			Config:   configs,
 			State:    storage.TaskPending,
 			Metadata: metadata,
 			Commands: commands,
 		})
 	}
-	jobID, _ := uuid.GenerateUUID()
-	now := time.Now()
 	return &storage.Job{
-		ID:   jobID,
 		Label: spec.Label,
 		State: storage.JobPending,
 		Tasks: tasks,
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 }
 
@@ -257,7 +257,7 @@ func extractCommands(spec *TaskSpec) []storage.Command {
 
 func extractMetadata(spec *TaskSpec) []storage.TaskMetadata {
 	var metadata []storage.TaskMetadata
-	for k, v := range spec.Config {
+	for k, v := range spec.Metadata {
 		metadata = append(metadata, storage.TaskMetadata{
 			Key:   k,
 			Value: v,
