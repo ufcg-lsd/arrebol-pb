@@ -60,7 +60,7 @@ const (
 )
 
 func (js JobState) String() string {
-	return [...]string{"Pending, Running, Failed", "Finished"}[js]
+	return [...]string{"Pending", "Running", "Failed", "Finished"}[js]
 }
 
 type Job struct {
@@ -81,7 +81,7 @@ const (
 )
 
 func (ts TaskState) String() string {
-	return [...]string{"Pending, Running, Failed", "Finished"}[ts]
+	return [...]string{"Pending", "Running", "Failed", "Finished"}[ts]
 }
 
 type Task struct {
@@ -117,7 +117,7 @@ const (
 )
 
 func (cs CommandState) String() string {
-	return [...]string{"NotStarted, Running, Failed", "Finished"}[cs]
+	return [...]string{"NotStarted", "Running", "Failed", "Finished"}[cs]
 }
 
 type Command struct {
