@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 	"os/signal"
@@ -12,7 +11,6 @@ import (
 	"github.com/emanueljoivo/arrebol/api"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func main() {
@@ -33,9 +31,10 @@ func main() {
 		log.Println("No .env file found")
 	}
 
-	clientOpt := options.Client().ApplyURI(os.Getenv("DATABASE_ADDRESS"))
-	m, _ := mongo.NewClient(clientOpt)
-	s := storage.New(m, wait)
+	s := storage.New()
+	s.SetUp()
+	defer s.Driver().Close()
+
 	a := api.New(s)
 
 	// Shutdown gracefully

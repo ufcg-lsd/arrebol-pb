@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 const VersionTag = "0.0.1"
@@ -20,27 +21,42 @@ type Version struct {
 }
 
 type QueueResponse struct {
-	ID string `json:"ID"`
-	Name string `json:"Name"`
-	PendingTasks uint `json:"PendingTasks"`
-	RunningTasks uint `json:"RunningTasks"`
-	Nodes uint `json:"Nodes"`
-	Workers uint `json:"Workers"`
+	ID           uint `json:"ID"`
+	Name         string `json:"Name"`
+	PendingTasks uint   `json:"PendingTasks"`
+	RunningTasks uint   `json:"RunningTasks"`
+	Nodes        uint   `json:"Nodes"`
+	Workers      uint   `json:"Workers"`
+}
+
+type JobResponse struct {
+	ID        uint     `json:"ID"`
+	Label     string     `json:"Label"`
+	State     string     `json:"State"`
+	CreatedAt time.Time  `json:"CreatedAt"`
+	UpdatedAt time.Time  `json:"UpdatedAt"`
+	Tasks     []TaskSpec `json:"Tasks"`
+}
+
+type ErrorResponse struct {
+	Message string `json:"Message"`
+	Status uint `json:"Status"`
 }
 
 type JobSpec struct {
-	Label string `json:"Label"`
+	Label string     `json:"Label"`
 	Tasks []TaskSpec `json:"Tasks"`
 }
 
 type TaskSpec struct {
-	ID string  `json:"ID"`
-	Config map[string]interface{} `json:"Config"`
-	Commands []string `json:"Commands"`
+	ID       string            `json:"ID"`
+	Config   map[string]string `json:"Config"`
+	Commands []string          `json:"Commands"`
+	Metadata map[string]string `json:"Metadata"`
 }
 
 var (
-	ProcReqErr = errors.New("error while trying to process response")
+	ProcReqErr   = errors.New("error while trying to process response")
 	EncodeResErr = errors.New("error while trying encode response")
 )
 
@@ -53,53 +69,60 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 		log.Println(ProcReqErr)
 	}
 
-	id := primitive.NewObjectID()
-	q.ID = id
-
-	_, err = a.storage.SaveQueue(&q)
+	err = a.storage.SaveQueue(&q)
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+		write(w, http.StatusBadRequest, ErrorResponse{
+			Message: "Error while trying to save the new queue",
+			Status:  http.StatusBadRequest,
+		})
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, id.Hex())
+		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, q.ID)
 	}
 }
 
 func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	queueId := params["qid"]
-
-	queue, err := a.storage.RetrieveQueue(queueId)
+	queueIDStr := params["qid"]
+	queueID, _ := strconv.Atoi(queueIDStr)
+	queue, err := a.storage.RetrieveQueue(uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+		write(w, http.StatusNotFound, ErrorResponse{
+			Message: fmt.Sprintf("Queue with id %d not found", queueID),
+			Status:  http.StatusNotFound,
+		})
 	} else {
-		response := responseFromQueue(queue)
-		write(w, http.StatusOK, response)
+		pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
+		runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+		response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+
+		write(w, http.StatusOK, &response)
 	}
 }
 
 func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	var response []*QueueResponse
 
-	queues, err := a.storage.RetrieveQueues()
+	queues := a.storage.RetrieveQueues()
 
-	if err != nil {
-		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
-	} else {
-		for i := 0; i < len(queues); i++ {
-			curQueue := responseFromQueue(queues[i])
-			response = append(response, curQueue)
-		}
-		write(w, http.StatusOK, response)
+	for _, queue := range queues {
+		pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
+		runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+		curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+		response = append(response, curQueue)
 	}
+	write(w, http.StatusOK, response)
 }
 
 func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	var jobSpec JobSpec
+	params := mux.Vars(r)
+
+	queueIDStr := params["qid"]
 
 	err := json.NewDecoder(r.Body).Decode(&jobSpec)
 
@@ -107,75 +130,76 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 		log.Println(ProcReqErr)
 	}
 
-	id := primitive.NewObjectID()
+	job := extractFromSpec(jobSpec)
 
-	job := jobFromSpec(jobSpec, id)
-
-	_, err = a.storage.SaveJob(job, id)
+	queueID, _ := strconv.Atoi(queueIDStr)
+	queue, err := a.storage.RetrieveQueue(uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+		write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: err.Error(),
+			Status:  http.StatusInternalServerError,
+		})
 	} else {
+		queue.Jobs = append(queue.Jobs, job)
+		err = a.storage.SaveQueue(queue)
+		if err != nil {
+			write(w, http.StatusInternalServerError, ErrorResponse{
+				Message: err.Error(),
+				Status:  http.StatusInternalServerError,
+			})
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%s"}`, id.Hex())
+		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, job.ID)
 	}
+}
+
+func (a *API) AddNode(w http.ResponseWriter, r *http.Request) {
+	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+}
+
+//func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
+//	params := mux.Vars(r)
+//
+//	queueId := params["qid"]
+//
+//	jobs, err := a.storage.RetrieveJobsByQueueID(queueId)
+//
+//	if err != nil {
+//		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+//	} else {
+//		write(w, http.StatusOK, jobs)
+//	}
+//}
+//
+//func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
+//	params := mux.Vars(r)
+//
+//	queueId := params["qid"]
+//	jobId := params["jid"]
+//
+//	job, err := a.storage.RetrieveJobByQueue(jobId, queueId)
+//
+//	if err != nil {
+//		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
+//	} else {
+//		write(w, http.StatusOK, job)
+//	}
+//}
+//
+
+func (a *API) RetrieveNode(w http.ResponseWriter, r *http.Request) {
+	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+}
+
+func (a *API) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
+	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *API) GetVersion(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
-}
-
-func responseFromQueue(queue *storage.Queue) *QueueResponse {
-	var pendingTasks uint
-	var runningTasks uint
-	jobs := queue.Jobs
-
-	for i := 0; i < len(jobs); i++ {
-		tasks := jobs[i].Tasks
-		for j := 0; j< len(tasks); j++ {
-			if tasks[j].State == storage.Pending {
-				pendingTasks++
-			}
-			if tasks[j].State == storage.Running {
-				runningTasks++
-			}
-		}
-	}
-
-	return &QueueResponse{
-		ID: queue.ID.Hex(),
-		Name: queue.Name,
-		PendingTasks: pendingTasks,
-		RunningTasks: runningTasks,
-		Nodes: uint(len(queue.Nodes)),
-	}
-}
-
-func jobFromSpec(jobSpec JobSpec, id primitive.ObjectID) *storage.Job {
-	var tasks []storage.Task
-
-	taskSpecs := jobSpec.Tasks
-
-	for i := 0; i< len(taskSpecs); i++ {
-		tasks = append(tasks, storage.Task{
-			ID:       taskSpecs[i].ID,
-			Config:   taskSpecs[i].Config,
-			Commands: taskSpecs[i].Commands,
-			State:    storage.Pending,
-		})
-	}
-
-	return &storage.Job{
-		ID:    id,
-		Label: jobSpec.Label,
-		State: storage.Pending,
-		Tasks: tasks,
-	}
-}
-
-func notOkResponse(err string) []byte {
-	return []byte(`{"Message": ` + err)
 }
 
 func write(w http.ResponseWriter, statusCode int, i interface{}) {
@@ -185,4 +209,71 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	if err := json.NewEncoder(w).Encode(i); err != nil {
 		log.Println(EncodeResErr)
 	}
+}
+
+func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint) *QueueResponse {
+	return &QueueResponse{
+		ID:           queue.ID,
+		Name:         queue.Name,
+		PendingTasks: pendingTasks,
+		RunningTasks: runningTasks,
+		Nodes:        uint(len(queue.Nodes)),
+	}
+}
+
+func extractFromSpec(spec JobSpec) *storage.Job {
+	var tasks []*storage.Task
+
+	for _, taskSpec := range spec.Tasks {
+		configs := extractConfigs(&taskSpec)
+		metadata := extractMetadata(&taskSpec)
+		commands := extractCommands(&taskSpec)
+
+		tasks = append(tasks, &storage.Task{
+			Config:   configs,
+			State:    storage.TaskPending,
+			Metadata: metadata,
+			Commands: commands,
+		})
+	}
+	return &storage.Job{
+		Label: spec.Label,
+		State: storage.JobPending,
+		Tasks: tasks,
+	}
+}
+
+func extractCommands(spec *TaskSpec) []storage.Command {
+	var commands []storage.Command
+	for _, cmd := range spec.Commands {
+		commands = append(commands, storage.Command{
+			ExitCode:   -1,
+			RawCommand: cmd,
+			State:      storage.CmdNotStarted,
+		})
+	}
+	return commands
+}
+
+func extractMetadata(spec *TaskSpec) []storage.TaskMetadata {
+	var metadata []storage.TaskMetadata
+	for k, v := range spec.Metadata {
+		metadata = append(metadata, storage.TaskMetadata{
+			Key:   k,
+			Value: v,
+		})
+	}
+	return metadata
+}
+
+func extractConfigs(task *TaskSpec) []storage.TaskConfig {
+	var configs []storage.TaskConfig
+	for k, v := range task.Config {
+		configs = append(configs, storage.TaskConfig{
+			Key:   k,
+			Value: v,
+		})
+	}
+
+	return configs
 }

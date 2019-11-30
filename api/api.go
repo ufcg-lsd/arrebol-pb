@@ -41,9 +41,13 @@ func (a *API) bootRouter() *mux.Router {
 	router.HandleFunc("/v1/queues", a.RetrieveQueues).Methods(http.MethodGet)
 	router.HandleFunc("/v1/queues/{qid}", a.RetrieveQueue).Methods(http.MethodGet)
 
-	// router.HandleFunc("/v1/queues/{qid}/jobs", a.RetrieveJobsByQueue).Methods(http.MethodGet)
-	// router.HandleFunc("/v1/queues/{qid}/jobs", a.CreateJob).Methods(http.MethodPost)
-	// router.HandleFunc("/v1/queues/{qid}/jobs/{jid}", a.RetrieveJob).Methods(http.MethodGet)
+	router.HandleFunc("/v1/queues/{qid}/jobs", a.CreateJob).Methods(http.MethodPost)
+	//router.HandleFunc("/v1/queues/{qid}/jobs", a.RetrieveJobsByQueue).Methods(http.MethodGet)
+	//router.HandleFunc("/v1/queues/{qid}/jobs/{jid}", a.RetrieveJobByQueue).Methods(http.MethodGet)
+	//
+	//router.HandleFunc("/v1/queues/{qid}/nodes", a.AddNode).Methods(http.MethodPost)
+	//router.HandleFunc("/v1/queues/{qid}/nodes", a.RetrieveNodes).Methods(http.MethodGet)
+	//router.HandleFunc("/v1/queues/{qid}/nodes/{nid}", a.RetrieveNode).Methods(http.MethodGet)
 
 	return router
 }
