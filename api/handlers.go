@@ -38,6 +38,10 @@ type JobResponse struct {
 	Tasks     []TaskSpec `json:"Tasks"`
 }
 
+type TaskResponse struct {
+
+}
+
 type ErrorResponse struct {
 	Message string `json:"Message"`
 	Status uint `json:"Status"`
@@ -61,25 +65,28 @@ var (
 )
 
 func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
-	var q storage.Queue
+	var queue storage.Queue
 
-	err := json.NewDecoder(r.Body).Decode(&q)
-
-	if err != nil {
-		log.Println(ProcReqErr)
-	}
-
-	err = a.storage.SaveQueue(&q)
+	err := json.NewDecoder(r.Body).Decode(&queue)
 
 	if err != nil {
 		write(w, http.StatusBadRequest, ErrorResponse{
-			Message: "Error while trying to save the new queue",
+			Message: "Maybe the body has a wrong shape",
 			Status:  http.StatusBadRequest,
+		})
+	}
+
+	err = a.storage.SaveQueue(&queue)
+
+	if err != nil {
+		write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: "Error while trying to save the new queue",
+			Status:  http.StatusInternalServerError,
 		})
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, q.ID)
+		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, queue.ID)
 	}
 }
 
@@ -87,35 +94,52 @@ func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
-	queueID, _ := strconv.Atoi(queueIDStr)
-	queue, err := a.storage.RetrieveQueue(uint(queueID))
+	queueID, err := strconv.Atoi(queueIDStr)
 
 	if err != nil {
-		write(w, http.StatusNotFound, ErrorResponse{
-			Message: fmt.Sprintf("Queue with id %d not found", queueID),
-			Status:  http.StatusNotFound,
+		write(w, http.StatusBadRequest, ErrorResponse{
+			Message: "Malformed request",
+			Status:  http.StatusBadRequest,
 		})
 	} else {
-		pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-		runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-		response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
 
-		write(w, http.StatusOK, &response)
+		queue, err := a.storage.RetrieveQueue(uint(queueID))
+
+		if err != nil {
+			write(w, http.StatusNotFound, ErrorResponse{
+				Message: fmt.Sprintf("Queue with ID %d not found", queueID),
+				Status:  http.StatusNotFound,
+			})
+		} else {
+			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+
+			write(w, http.StatusOK, &response)
+		}
 	}
 }
 
 func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	var response []*QueueResponse
 
-	queues := a.storage.RetrieveQueues()
+	queues, err := a.storage.RetrieveQueues()
 
-	for _, queue := range queues {
-		pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-		runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-		curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
-		response = append(response, curQueue)
+	if err != nil {
+		write(w, http.StatusNotFound, ErrorResponse{
+			Message: fmt.Sprintf("%v", err),
+			Status:  http.StatusNotFound,
+		})
+	} else {
+
+		for _, queue := range queues {
+			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+			response = append(response, curQueue)
+		}
+		write(w, http.StatusOK, response)
 	}
-	write(w, http.StatusOK, response)
 }
 
 func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
@@ -156,39 +180,47 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	queueIDStr := params["qid"]
+	queueID, _ := strconv.Atoi(queueIDStr)
+
+	jobs, err := a.storage.RetrieveJobsByQueueID(uint(queueID))
+
+	if err != nil {
+		write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: err.Error(),
+			Status:  http.StatusInternalServerError,
+		})
+	} else {
+		write(w, http.StatusOK, jobs)
+	}
+}
+
+func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	queueIDStr := params["qid"]
+	queueID, _ := strconv.Atoi(queueIDStr)
+	jobIDStr := params["jid"]
+	jobID, _ := strconv.Atoi(jobIDStr)
+
+	job, err := a.storage.RetrieveJobByQueue(uint(jobID), uint(queueID))
+
+	if err != nil {
+		write(w, http.StatusNotFound, ErrorResponse{
+			Message:  fmt.Sprintf("Job with ID %d not found in queue %d", jobID, queueID),
+			Status:  http.StatusNotFound,
+		})
+	} else {
+		write(w, http.StatusOK, responseFromJob(job))
+	}
+}
+
 func (a *API) AddNode(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
-
-//func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
-//	params := mux.Vars(r)
-//
-//	queueId := params["qid"]
-//
-//	jobs, err := a.storage.RetrieveJobsByQueueID(queueId)
-//
-//	if err != nil {
-//		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
-//	} else {
-//		write(w, http.StatusOK, jobs)
-//	}
-//}
-//
-//func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
-//	params := mux.Vars(r)
-//
-//	queueId := params["qid"]
-//	jobId := params["jid"]
-//
-//	job, err := a.storage.RetrieveJobByQueue(jobId, queueId)
-//
-//	if err != nil {
-//		write(w, http.StatusInternalServerError, notOkResponse(err.Error()))
-//	} else {
-//		write(w, http.StatusOK, job)
-//	}
-//}
-//
 
 func (a *API) RetrieveNode(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
@@ -209,6 +241,22 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	if err := json.NewEncoder(w).Encode(i); err != nil {
 		log.Println(EncodeResErr)
 	}
+}
+
+func responseFromJob(job *storage.Job) *JobResponse {
+
+	return &JobResponse{
+		ID:        job.ID,
+		Label:     job.Label,
+		State:     job.State.String(),
+		CreatedAt: job.CreatedAt,
+		UpdatedAt: job.UpdatedAt,
+		Tasks:     nil,
+	}
+}
+
+func responseFromTasks(tasks []*storage.Task) *[]TaskSpec {
+	return nil
 }
 
 func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint) *QueueResponse {

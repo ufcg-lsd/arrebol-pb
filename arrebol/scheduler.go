@@ -7,11 +7,16 @@ import (
 
 type Scheduler struct {
 	tasks chan *storage.Task
-	workers chan Worker
+	workers []*Worker
 }
 
-func (s *Scheduler) NewScheduler(tasks chan *storage.Task) *Scheduler {
-	s.tasks = tasks
+func NewScheduler(tasks chan *storage.Task, ) *Scheduler {
+
+
+	return &Scheduler{
+		tasks:   tasks,
+		workers: nil,
+	}
 }
 
 func (s *Scheduler) Schedule() {
