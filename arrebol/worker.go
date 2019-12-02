@@ -1,8 +1,6 @@
 package arrebol
 
-type Worker struct {
-
-}
+type Worker struct {}
 
 func NewWorker() *Worker {
 	return &Worker{}

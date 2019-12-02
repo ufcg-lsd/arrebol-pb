@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/emanueljoivo/arrebol/arrebol"
 	"log"
 	"os"
 	"os/signal"
@@ -36,7 +37,10 @@ func main() {
 	s.SetUp()
 	defer s.Driver().Close()
 
-	a := api.New(s)
+	var jobDispatcher = arrebol.NewDispatcher()
+	go jobDispatcher.Start()
+
+	a := api.New(s, jobDispatcher)
 
 	// Shutdown gracefully
 	go func() {

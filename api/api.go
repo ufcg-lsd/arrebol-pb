@@ -2,24 +2,27 @@ package api
 
 import (
 	"context"
+	"github.com/emanueljoivo/arrebol/arrebol"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 )
 
-type API struct {
+type HttpApi struct {
 	storage *storage.Storage
 	server  *http.Server
+	arrebol *arrebol.Dispatcher
 }
 
-func New(storage *storage.Storage) *API {
-	return &API{
+func New(storage *storage.Storage, arrebol *arrebol.Dispatcher) *HttpApi {
+	return &HttpApi{
 		storage: storage,
+		arrebol: arrebol,
 	}
 }
 
-func (a *API) Start(port string) error {
+func (a *HttpApi) Start(port string) error {
 	a.server = &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),
@@ -28,11 +31,11 @@ func (a *API) Start(port string) error {
 	return a.server.ListenAndServe()
 }
 
-func (a *API) Shutdown() error {
+func (a *HttpApi) Shutdown() error {
 	return a.server.Shutdown(context.Background())
 }
 
-func (a *API) bootRouter() *mux.Router {
+func (a *HttpApi) bootRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/v1/version", a.GetVersion).Methods(http.MethodGet)

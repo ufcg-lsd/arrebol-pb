@@ -53,14 +53,14 @@ type ResourceNode struct {
 type JobState uint8
 
 const (
-	JobPending JobState = iota
+	JobQueued JobState = iota
 	JobRunning
 	JobFinished
 	JobFailed
 )
 
 func (js JobState) String() string {
-	return [...]string{"Pending", "Running", "Failed", "Finished"}[js]
+	return [...]string{"Queued", "Running", "Failed", "Finished"}[js]
 }
 
 type Job struct {

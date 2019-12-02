@@ -64,7 +64,7 @@ var (
 	EncodeResErr = errors.New("error while trying encode response")
 )
 
-func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	var queue storage.Queue
 
 	err := json.NewDecoder(r.Body).Decode(&queue)
@@ -84,13 +84,14 @@ func (a *API) CreateQueue(w http.ResponseWriter, r *http.Request) {
 			Status:  http.StatusInternalServerError,
 		})
 	} else {
+		a.arrebol.HireSupervisor(&queue)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, queue.ID)
 	}
 }
 
-func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
@@ -120,7 +121,7 @@ func (a *API) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	var response []*QueueResponse
 
 	queues, err := a.storage.RetrieveQueues()
@@ -142,7 +143,7 @@ func (a *API) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 	var jobSpec JobSpec
 	params := mux.Vars(r)
 
@@ -174,13 +175,15 @@ func (a *API) CreateJob(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
+		go a.arrebol.AcceptJob(job)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, job.ID)
 	}
 }
 
-func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
@@ -198,7 +201,7 @@ func (a *API) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
@@ -218,19 +221,19 @@ func (a *API) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *API) AddNode(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) AddNode(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
-func (a *API) RetrieveNode(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) RetrieveNode(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
-func (a *API) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
-func (a *API) GetVersion(w http.ResponseWriter, r *http.Request) {
+func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
 }
 
@@ -286,7 +289,6 @@ func extractFromSpec(spec JobSpec) *storage.Job {
 	}
 	return &storage.Job{
 		Label: spec.Label,
-		State: storage.JobPending,
 		Tasks: tasks,
 	}
 }
