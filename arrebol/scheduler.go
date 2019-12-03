@@ -5,9 +5,9 @@ import (
 	"log"
 )
 
+// no preemptive
 type Scheduler struct {
 	tasks chan *storage.Task
-	workers []*Worker
 	policy Policy
 }
 
@@ -21,11 +21,8 @@ func (rs Policy) String() string {
 	return [...]string{"Fifo"}[rs]
 }
 
-func NewScheduler(tasks chan *storage.Task, policy Policy) *Scheduler {
-
+func NewScheduler(policy Policy) *Scheduler {
 	return &Scheduler{
-		tasks:   tasks,
-		workers: nil,
 		policy: policy,
 	}
 }

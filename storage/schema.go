@@ -36,7 +36,6 @@ type ResourceState uint8
 const (
 	Idle ResourceState = iota
 	Allocated
-	Busy
 )
 
 func (rs ResourceState) String() string {

@@ -30,6 +30,7 @@ func (m *Dispatcher) Start() {
 	log.Println("Arrebol Dispatcher start accept jobs")
 	for {
 		job := <- m.jobsAccepted
+		// only receive jobs that belong to a queue
 		super := m.supervisor[job.QueueID]
 		super.Collect(job)
 	}
