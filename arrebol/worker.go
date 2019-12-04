@@ -1,6 +1,7 @@
 package arrebol
 
 import (
+	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/hashicorp/go-uuid"
 	"log"
 	"os/exec"
@@ -19,12 +20,17 @@ const (
 	Docker
 )
 
-func NewWorker() *Worker {
+func NewWorker(driver Driver) *Worker {
 	id, _ := uuid.GenerateUUID()
 	return &Worker{
 		id: id,
-		driver: Raw,
+		driver: driver,
 	}
+}
+
+func (w *Worker) MatchAny(task *storage.Task) bool {
+	log.Printf("matching task %d", task.ID)
+	return true
 }
 
 func (w *Worker) Execute(cmd string) {

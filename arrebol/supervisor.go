@@ -30,7 +30,7 @@ func (s *Supervisor) HireWorkerPool(driver Driver) {
 		pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 
 		for i := 0; i < pool; i++ {
-			s.workers <- NewWorker()
+			s.workers <- NewWorker(Raw)
 		}
 
 	case Docker:
