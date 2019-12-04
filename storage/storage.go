@@ -26,7 +26,7 @@ func New(host string, port string, user string, dbname string, password string) 
 		log.Fatalln(err.Error())
 	}
 
-	driver.LogMode(true)
+	// driver.LogMode(true)
 
 	storage := &Storage{
 		driver,
@@ -83,7 +83,7 @@ func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }
 
-func (s *Storage) RetrieveJobByQueue(jobID uint, queueId uint) (*Job, error) {
+func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 	var job Job
 	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
 	err := s.driver.First(&job, jobID).Error
@@ -100,16 +100,18 @@ func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
 	return jobs, err
 }
 
-
 func CreateDefault(storage *Storage) {
 	q := &Queue{
 		Name: "Default",
 	}
 
 	var queue Queue
-	if err := storage.driver.Where("id = ?", q.ID).First(&queue).Error; err != nil {
+	if err := storage.driver.Where("id = ?", 1).First(&queue).Error; err != nil {
 		log.Println(err.Error())
-		storage.SaveQueue(q)
+		err = storage.SaveQueue(q)
+		if err != nil {
+			log.Println(err.Error())
+		}
 	} else {
 		log.Println("Default queue already exists")
 	}

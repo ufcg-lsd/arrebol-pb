@@ -39,7 +39,7 @@ const (
 )
 
 func (rs ResourceState) String() string {
-	return [...]string{"Idle, Allocated, Busy"}[rs]
+	return [...]string{"Idle", "Allocated"}[rs]
 }
 
 type ResourceNode struct {

@@ -3,33 +3,40 @@ package arrebol
 import (
 	"github.com/emanueljoivo/arrebol/storage"
 	"log"
+	"os"
+	"strconv"
 )
 
 type Supervisor struct {
-	queue 	*storage.Queue
-	workers chan *Worker
+	queue        *storage.Queue
+	workers      chan *Worker
 	pendingTasks chan *storage.Task
-	scheduler *Scheduler
+	scheduler    *Scheduler
 }
-
-type Worker struct {
-	id			string
-	nodeAddr	string
-}
-
-const WorkerPoolAmount = 2
 
 func NewSupervisor(queue *storage.Queue) *Supervisor {
 	return &Supervisor{
-		queue: queue,
+		queue:        queue,
 		pendingTasks: make(chan *storage.Task, 1000),
-		scheduler: NewScheduler(Fifo),
+		scheduler:    NewScheduler(Fifo),
 	}
 }
 
-func (s *Supervisor) HireWorkerPool(node *storage.ResourceNode) {
-	node.State = storage.Allocated
-	for i := 0; i < WorkerPoolAmount; i++ {
+// should be specific by node
+func (s *Supervisor) HireWorkerPool(driver Driver) {
+	switch driver {
+	case Raw:
+		log.Println("just support system level execution with static pool of workers")
+		pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
+
+		for i := 0; i < pool; i++ {
+			s.workers <- NewWorker()
+		}
+
+	case Docker:
+		log.Println("not supported yet")
+	default:
+		log.Println("no worker type")
 	}
 }
 
@@ -42,12 +49,11 @@ func (s *Supervisor) Collect(job *storage.Job) {
 }
 
 type AllocationPlan struct {
-	task   *storage.Task
+	task *storage.Task
 }
 
 func (s *Supervisor) AllocPlan(task *storage.Task) *AllocationPlan {
 	return &AllocationPlan{
-		task:   task,
+		task: task,
 	}
 }
-
