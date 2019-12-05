@@ -27,10 +27,12 @@ func (p Policy) String() string {
 	return [...]string{"Fifo"}[p]
 }
 
-func (p Policy) schedule(pendingTasks chan *storage.Task, workers []*Worker) {
+func (p Policy) schedule(plans chan *AllocationPlan) {
 	switch p {
 	case Fifo:
-
+		for plan := range plans {
+			plan.execute()
+		}
 	default:
 		log.Println("Just support fifo")
 	}
@@ -47,10 +49,11 @@ func NewScheduler(policy Policy) *Scheduler {
 }
 
 func (s *Scheduler) Start() {
-	// only support raw workers, for now, meaning jobs sent to this supervisor will run
+	// only support raw workers, for now, meaning jobs sent to the supervisor of this scheduler will run
 	// uninsulated and on the Unix-type host operating system
 	s.HireRawWorkers(Raw)
-	s.inferPlans()
+	go s.inferPlans()
+	s.Schedule()
 }
 
 func (s *Scheduler) Schedule() {
@@ -79,7 +82,6 @@ func (s *Scheduler) AddTask(task *storage.Task) {
 	s.pendingTasks <- task
 }
 
-
 type AllocationPlan struct {
 	task *storage.Task
 	worker *Worker
@@ -87,6 +89,7 @@ type AllocationPlan struct {
 
 func (a *AllocationPlan) execute() {
 	a.worker.Execute(a.task)
+
 }
 
 // Seeding to the channel of plans.
@@ -100,8 +103,11 @@ func (s *Scheduler) inferPlans() {
 		plan := s.inferPlanForTask(task)
 
 		if plan != nil {
-			s.pendingPlans <- plan
+			s.pendingPlans <- plan // a channel is used here because only fifo's policy is supported
+		} else {
+			s.pendingTasks <- task
 		}
+
 	}
 }
 
