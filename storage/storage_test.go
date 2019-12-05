@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-var storage = New("localhost", "5432", "postgres", "postgres", "postgres")
+var storage = NewDB("localhost", "5432", "postgres", "postgres", "postgres")
 
 func TestSaveQueue(t *testing.T) {
 	storage.SetUp()

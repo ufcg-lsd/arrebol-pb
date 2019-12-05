@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/emanueljoivo/arrebol/arrebol"
 	"log"
 	"os"
 	"os/signal"
@@ -31,11 +32,15 @@ func main() {
 		log.Println("No .env file found")
 	}
 
-	s := storage.New()
+	s := storage.NewDB(os.Getenv("DATABASE_ADDRESS"), os.Getenv("DATABASE_PORT"),
+		os.Getenv("DATABASE_NAME"), os.Getenv("DATABASE_PASSWORD"), os.Getenv("DATABASE_USER"))
 	s.SetUp()
 	defer s.Driver().Close()
 
-	a := api.New(s)
+	var jobDispatcher = arrebol.NewDispatcher(s)
+	go jobDispatcher.Start()
+
+	a := api.New(s, jobDispatcher)
 
 	// Shutdown gracefully
 	go func() {
@@ -52,5 +57,4 @@ func main() {
 	if err := a.Start(*apiPort); err != nil {
 		log.Fatal(err.Error())
 	}
-
 }

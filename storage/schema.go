@@ -36,11 +36,10 @@ type ResourceState uint8
 const (
 	Idle ResourceState = iota
 	Allocated
-	Busy
 )
 
 func (rs ResourceState) String() string {
-	return [...]string{"Idle, Allocated, Busy"}[rs]
+	return [...]string{"Idle", "Allocated"}[rs]
 }
 
 type ResourceNode struct {
@@ -53,14 +52,14 @@ type ResourceNode struct {
 type JobState uint8
 
 const (
-	JobPending JobState = iota
+	JobQueued JobState = iota
 	JobRunning
 	JobFinished
 	JobFailed
 )
 
 func (js JobState) String() string {
-	return [...]string{"Pending", "Running", "Failed", "Finished"}[js]
+	return [...]string{"Queued", "Running", "Failed", "Finished"}[js]
 }
 
 type Job struct {
