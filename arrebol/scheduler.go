@@ -31,7 +31,7 @@ func (p Policy) schedule(plans chan *AllocationPlan) {
 	switch p {
 	case Fifo:
 		for plan := range plans {
-			plan.execute()
+			go plan.execute()
 		}
 	default:
 		log.Println("Just support fifo")
