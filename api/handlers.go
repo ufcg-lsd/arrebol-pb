@@ -178,7 +178,7 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		go a.arrebol.AcceptJob(job)
+		a.arrebol.AcceptJob(job)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)

@@ -30,6 +30,7 @@ func (s *Supervisor) Collect(job *storage.Job) {
 	log.Printf("Collecting tasks of the job %d", job.ID)
 	tasks := &job.Tasks
 	for _, task := range *tasks {
+		task.State = storage.TaskPending
 		s.scheduler.AddTask(task)
 	}
 }

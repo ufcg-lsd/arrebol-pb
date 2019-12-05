@@ -10,11 +10,11 @@ import (
 
 // no preemptive
 type Scheduler struct {
-	staticPool   []*Worker
+	workers      []*Worker
 	pendingTasks chan *storage.Task
 	pendingPlans chan *AllocationPlan
 	policy       Policy
-	mutex sync.Mutex
+	mutex        sync.Mutex
 }
 
 type Policy uint
@@ -27,12 +27,10 @@ func (p Policy) String() string {
 	return [...]string{"Fifo"}[p]
 }
 
-func (p Policy) schedule(pendingPlans chan *AllocationPlan) {
+func (p Policy) schedule(pendingTasks chan *storage.Task, workers []*Worker) {
 	switch p {
 	case Fifo:
-		for plan := range pendingPlans {
 
-		}
 	default:
 		log.Println("Just support fifo")
 	}
@@ -42,7 +40,7 @@ func NewScheduler(policy Policy) *Scheduler {
 	defaultWorkerPool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 	return &Scheduler{
 		policy:       policy,
-		staticPool:   make([]*Worker, defaultWorkerPool),
+		workers:      make([]*Worker, defaultWorkerPool),
 		pendingTasks: make(chan *storage.Task),
 		pendingPlans: make(chan *AllocationPlan),
 	}
@@ -67,7 +65,7 @@ func (s *Scheduler) HireRawWorkers(driver Driver) {
 		pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 
 		for i := 0; i < pool; i++ {
-			s.staticPool = append(s.staticPool, NewWorker(Raw))
+			s.workers = append(s.workers, NewWorker(Raw))
 		}
 
 	case Docker:
@@ -110,7 +108,7 @@ func (s *Scheduler) inferPlans() {
 func (s *Scheduler) inferPlanForTask(task *storage.Task) *AllocationPlan {
 	s.mutex.Lock()
 	var w *Worker
-	for _, worker := range s.staticPool {
+	for _, worker := range s.workers {
 		if worker.MatchAny(task) {
 			w = worker
 		}
