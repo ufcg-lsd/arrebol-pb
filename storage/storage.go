@@ -11,7 +11,7 @@ type Storage struct {
 	driver *gorm.DB
 }
 
-func New(host string, port string, user string, dbname string, password string) *Storage {
+func NewDB(host string, port string, user string, dbname string, password string) *Storage {
 	dbAddr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		host, port, user, dbname, password)
 	driver, err := gorm.Open("postgres", dbAddr)
@@ -100,14 +100,25 @@ func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
 	return jobs, err
 }
 
+func (s *Storage) GetDefaultQueue() (*Queue, error) {
+	var queue Queue
+	const QIDDefault = 1
+	if err := s.driver.Where("id = ?", QIDDefault).First(&queue).Error; err != nil {
+		s.driver.First(&queue, 1)
+	} else {
+		return &Queue{}, err
+	}
+	return &queue, nil
+}
+
 func CreateDefault(storage *Storage) {
 	q := &Queue{
 		Name: "Default",
 	}
 
-	var queue Queue
-	if err := storage.driver.Where("id = ?", 1).First(&queue).Error; err != nil {
-		log.Println(err.Error())
+	q, err := storage.GetDefaultQueue()
+
+	if err != nil {
 		err = storage.SaveQueue(q)
 		if err != nil {
 			log.Println(err.Error())

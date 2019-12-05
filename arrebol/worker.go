@@ -11,6 +11,7 @@ import (
 type Worker struct {
 	id     string
 	driver Driver
+	state WorkerState
 }
 
 type Driver uint
@@ -20,11 +21,20 @@ const (
 	Docker
 )
 
+type WorkerState uint
+
+const (
+	Sleeping WorkerState = iota
+	Walking
+	Working
+)
+
 func NewWorker(driver Driver) *Worker {
 	id, _ := uuid.GenerateUUID()
 	return &Worker{
 		id: id,
 		driver: driver,
+		state: Sleeping,
 	}
 }
 
@@ -33,7 +43,11 @@ func (w *Worker) MatchAny(task *storage.Task) bool {
 	return true
 }
 
-func (w *Worker) Execute(cmd string) {
+func (w *Worker) Execute(task *storage.Task) ([]int, storage.TaskState){
+
+}
+
+func (w *Worker) ExecuteCmd(cmd string) {
 	parts := strings.Fields(cmd)
 	head := parts[0]
 	parts = parts[1:]

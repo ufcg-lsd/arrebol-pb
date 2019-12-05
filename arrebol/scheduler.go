@@ -1,13 +1,7 @@
 package arrebol
 
-import (
-	"github.com/emanueljoivo/arrebol/storage"
-	"log"
-)
-
 // no preemptive
 type Scheduler struct {
-	tasks chan *storage.Task
 	policy Policy
 }
 
@@ -17,8 +11,15 @@ const (
 	Fifo Policy = iota
 )
 
-func (rs Policy) String() string {
-	return [...]string{"Fifo"}[rs]
+func (p Policy) String() string {
+	return [...]string{"Fifo"}[p]
+}
+
+func (p Policy) Schedule(plan *AllocationPlan) {
+	switch p {
+	case Fifo:
+
+	}
 }
 
 func NewScheduler(policy Policy) *Scheduler {
@@ -27,14 +28,7 @@ func NewScheduler(policy Policy) *Scheduler {
 	}
 }
 
-func (s *Scheduler) Schedule() {
-	for {
-		switch s.policy {
-
-		case Fifo:
-			currTask := <-s.tasks
-			log.Println(currTask)
-		}
-	}
+func (s *Scheduler) Schedule(plan *AllocationPlan) {
+	s.policy.Schedule(plan)
 }
 

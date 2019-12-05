@@ -32,12 +32,12 @@ func main() {
 		log.Println("No .env file found")
 	}
 
-	s := storage.New(os.Getenv("DATABASE_ADDRESS"), os.Getenv("DATABASE_PORT"),
+	s := storage.NewDB(os.Getenv("DATABASE_ADDRESS"), os.Getenv("DATABASE_PORT"),
 		os.Getenv("DATABASE_NAME"), os.Getenv("DATABASE_PASSWORD"), os.Getenv("DATABASE_USER"))
 	s.SetUp()
 	defer s.Driver().Close()
 
-	var jobDispatcher = arrebol.NewDispatcher()
+	var jobDispatcher = arrebol.NewDispatcher(s)
 	go jobDispatcher.Start()
 
 	a := api.New(s, jobDispatcher)
@@ -57,5 +57,4 @@ func main() {
 	if err := a.Start(*apiPort); err != nil {
 		log.Fatal(err.Error())
 	}
-
 }

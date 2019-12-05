@@ -8,40 +8,56 @@ import (
 
 type Dispatcher struct {
 	jobsAccepted chan *storage.Job
-	supervisor map[uint]*Supervisor
-	mux sync.Mutex
+	supervisors  map[uint]*Supervisor
+	db           *storage.Storage
+	mux          sync.Mutex
 }
 
-func NewDispatcher() *Dispatcher {
+func NewDispatcher(db *storage.Storage) *Dispatcher {
 	return &Dispatcher{
 		jobsAccepted: make(chan *storage.Job, 100),
-		supervisor: make(map[uint]*Supervisor, 0),
+		supervisors:  make(map[uint]*Supervisor),
+		db:           db,
 	}
 }
 
-func (m *Dispatcher) HireSupervisor(queue *storage.Queue) {
-	m.mux.Lock()
+func (d *Dispatcher) HireSupervisor(queue *storage.Queue) {
+	d.mux.Lock()
 	log.Printf("Hiring new supervisor to the queue %d", queue.ID)
-	m.supervisor[queue.ID] = NewSupervisor(queue)
-	m.mux.Unlock()
+	d.supervisors[queue.ID] = NewSupervisor(queue)
+	d.mux.Unlock()
 }
 
-func (m *Dispatcher) Start() {
+func (d *Dispatcher) Start() {
 	log.Println("Arrebol Dispatcher start accept jobs")
+	d.initDefaultSupervisor()
+
 	for {
-		job := <- m.jobsAccepted
+		job := <- d.jobsAccepted
 		// only receive jobs that belong to a queue
-		super := m.supervisor[job.QueueID]
+		super := d.supervisors[job.QueueID]
 		super.Collect(job)
 	}
 }
 
-func (m *Dispatcher) AcceptJob(job *storage.Job) {
-	m.mux.Lock()
+func (d *Dispatcher) initDefaultSupervisor() {
+	var q *storage.Queue
+
+	q, err := d.db.GetDefaultQueue()
+
+	if err != nil && q != nil {
+		d.HireSupervisor(q)
+		super := d.supervisors[q.ID]
+		go super.Start()
+	}
+}
+
+func (d *Dispatcher) AcceptJob(job *storage.Job) {
+	d.mux.Lock()
 	log.Printf("Job %d accepted\n", job.ID)
 	job.State = storage.JobQueued
-	m.jobsAccepted <- job
-	m.mux.Unlock()
+	d.jobsAccepted <- job
+	d.mux.Unlock()
 }
 
 
