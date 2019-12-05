@@ -106,7 +106,7 @@ func (s *Storage) GetDefaultQueue() (*Queue, error) {
 	if err := s.driver.Where("id = ?", QIDDefault).First(&queue).Error; err != nil {
 		s.driver.First(&queue, 1)
 	} else {
-		return &Queue{}, err
+		return nil, err
 	}
 	return &queue, nil
 }
@@ -116,9 +116,9 @@ func CreateDefault(storage *Storage) {
 		Name: "Default",
 	}
 
-	q, err := storage.GetDefaultQueue()
+	queue, err := storage.GetDefaultQueue()
 
-	if err != nil {
+	if queue != nil {
 		err = storage.SaveQueue(q)
 		if err != nil {
 			log.Println(err.Error())
