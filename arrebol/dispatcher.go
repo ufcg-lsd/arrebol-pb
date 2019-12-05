@@ -15,25 +15,29 @@ type Dispatcher struct {
 
 func NewDispatcher(db *storage.Storage) *Dispatcher {
 	return &Dispatcher{
-		jobsAccepted: make(chan *storage.Job, 100),
+		jobsAccepted: make(chan *storage.Job),
 		supervisors:  make(map[uint]*Supervisor),
 		db:           db,
 	}
 }
 
-func (d *Dispatcher) HireSupervisor(queue *storage.Queue) {
+func (d *Dispatcher) HireSupervisor(queue *storage.Queue) *Supervisor {
 	d.mux.Lock()
+	defer d.mux.Unlock()  // must be called after the return
+
 	log.Printf("Hiring new supervisor to the queue %d", queue.ID)
-	d.supervisors[queue.ID] = NewSupervisor(queue)
-	d.mux.Unlock()
+
+	super := NewSupervisor(queue)
+	d.supervisors[queue.ID] = super
+
+	return super
 }
 
 func (d *Dispatcher) Start() {
 	log.Println("Arrebol Dispatcher start accept jobs")
 	d.initDefaultSupervisor()
 
-	for {
-		job := <- d.jobsAccepted
+	for job := range d.jobsAccepted {
 		// only receive jobs that belong to a queue
 		super := d.supervisors[job.QueueID]
 		super.Collect(job)
@@ -46,18 +50,15 @@ func (d *Dispatcher) initDefaultSupervisor() {
 	q, err := d.db.GetDefaultQueue()
 
 	if err != nil && q != nil {
-		d.HireSupervisor(q)
-		super := d.supervisors[q.ID]
+		super := d.HireSupervisor(q)
 		go super.Start()
 	}
 }
 
 func (d *Dispatcher) AcceptJob(job *storage.Job) {
-	d.mux.Lock()
 	log.Printf("Job %d accepted\n", job.ID)
 	job.State = storage.JobQueued
 	d.jobsAccepted <- job
-	d.mux.Unlock()
 }
 
 

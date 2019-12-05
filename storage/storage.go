@@ -48,10 +48,10 @@ func (s *Storage) SaveQueue(q *Queue) error {
 	return s.driver.Save(&q).Error
 }
 
-func (s *Storage) RetrieveQueue(queueId uint) (*Queue, error) {
+func (s *Storage) RetrieveQueue(queueID uint) (*Queue, error) {
 	var queue Queue
-	log.Println(fmt.Sprintf("Retrieving queue %d", queueId))
-	err := s.driver.First(&queue, queueId).Error
+	log.Println(fmt.Sprintf("Retrieving queue %d", queueID))
+	err := s.driver.First(&queue, queueID).Error
 	log.Println(queue)
 	return &queue, err
 }

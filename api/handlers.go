@@ -84,7 +84,10 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 			Status:  http.StatusInternalServerError,
 		})
 	} else {
-		a.arrebol.HireSupervisor(&queue)
+		super := a.arrebol.HireSupervisor(&queue)
+
+		go super.Start()
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, queue.ID)
