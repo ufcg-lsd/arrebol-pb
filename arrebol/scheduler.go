@@ -107,7 +107,6 @@ func (s *Scheduler) inferPlans() {
 		} else {
 			s.pendingTasks <- task
 		}
-
 	}
 }
 
