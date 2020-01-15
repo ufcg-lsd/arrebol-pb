@@ -85,9 +85,9 @@ func (s *Storage) SaveJob(job *Job) error {
 
 func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 	var job Job
-	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
-	err := s.driver.First(&job, jobID).Error
 
+	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
+	err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
 	return &job, err
 }
 

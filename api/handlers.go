@@ -35,11 +35,12 @@ type JobResponse struct {
 	State     string     `json:"State"`
 	CreatedAt time.Time  `json:"CreatedAt"`
 	UpdatedAt time.Time  `json:"UpdatedAt"`
-	Tasks     []TaskSpec `json:"Tasks"`
+	Tasks     *[]TaskResponse `json:"Tasks"`
 }
 
 type TaskResponse struct {
-
+	ID        uint     `json:"ID"`
+	State    string      `json:"State"`
 }
 
 type ErrorResponse struct {
@@ -250,19 +251,26 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 }
 
 func responseFromJob(job *storage.Job) *JobResponse {
-
+	tasksResponse := responseFromTasks(job.Tasks)
 	return &JobResponse{
 		ID:        job.ID,
 		Label:     job.Label,
 		State:     job.State.String(),
 		CreatedAt: job.CreatedAt,
 		UpdatedAt: job.UpdatedAt,
-		Tasks:     nil,
+		Tasks:     tasksResponse,
 	}
 }
 
-func responseFromTasks(tasks []*storage.Task) *[]TaskSpec {
-	return nil
+func responseFromTasks(tasks []*storage.Task) *[]TaskResponse {
+	var tasksResponse []TaskResponse
+	for _, task := range tasks {
+		tasksResponse = append(tasksResponse, TaskResponse{
+			task.ID,
+			task.State.String(),
+		})
+	}
+	return &tasksResponse
 }
 
 func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint) *QueueResponse {
