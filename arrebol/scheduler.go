@@ -39,10 +39,9 @@ func (p Policy) schedule(plans chan *AllocationPlan) {
 }
 
 func NewScheduler(policy Policy) *Scheduler {
-	defaultWorkerPool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 	return &Scheduler{
 		policy:       policy,
-		workers:      make([]*Worker, defaultWorkerPool),
+		workers:      make([]*Worker, 0),
 		pendingTasks: make(chan *storage.Task),
 		pendingPlans: make(chan *AllocationPlan),
 	}
