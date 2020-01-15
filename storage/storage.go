@@ -103,7 +103,7 @@ func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
 func (s *Storage) GetDefaultQueue() (*Queue, error) {
 	var queue Queue
 	const QIDDefault = 1
-	if err := s.driver.Where("id = ?", QIDDefault).First(&queue).Error; err != nil {
+	if err := s.driver.Where("id = ?", QIDDefault).First(&queue).Error; err == nil {
 		s.driver.First(&queue, 1)
 	} else {
 		return nil, err
@@ -118,7 +118,7 @@ func CreateDefault(storage *Storage) {
 
 	queue, err := storage.GetDefaultQueue()
 
-	if queue != nil {
+	if queue == nil {
 		err = storage.SaveQueue(q)
 		if err != nil {
 			log.Println(err.Error())
