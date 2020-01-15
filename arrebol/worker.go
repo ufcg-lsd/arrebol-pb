@@ -50,16 +50,15 @@ func (w *Worker) MatchAny(task *storage.Task) bool {
 func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskState){
 	w.state = Working
 	task.State = storage.TaskRunning
-	commands :=  make (chan *storage.Command)
 	for _, cmd := range task.Commands {
-		w.ExecuteCmd(&cmd, commands)
+		w.ExecuteCmd(&cmd)
 	}
 
 	var executed []*storage.Command
 	flawed := false
 
-	for cmd := range commands {
-		executed = append(executed, cmd)
+	for _, cmd := range task.Commands {
+		executed = append(executed, &cmd)
 		if cmd.State == storage.CmdFailed {
 			flawed = true
 		}
@@ -74,7 +73,7 @@ func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskSt
 	return executed, task.State
 }
 
-func (w *Worker) ExecuteCmd(cmd *storage.Command, commands chan *storage.Command) {
+func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 	cmd.State = storage.CmdRunning
 	cmdStr := cmd.RawCommand
 	parts := strings.Fields(cmdStr)
@@ -86,11 +85,9 @@ func (w *Worker) ExecuteCmd(cmd *storage.Command, commands chan *storage.Command
 		log.Printf("%s", err)
 		cmd.State = storage.CmdFailed
 		cmd.ExitCode = FailExitCode
-		commands <- cmd
 	} else {
 		log.Printf("%s", out)
 		cmd.State = storage.CmdFinished
 		cmd.ExitCode = SuccessExitCode
-		commands <- cmd
 	}
 }
