@@ -49,7 +49,7 @@ func (d *Dispatcher) initDefaultSupervisor() {
 
 	q, err := d.db.GetDefaultQueue()
 
-	if err != nil && q != nil {
+	if err == nil && q != nil {
 		super := d.HireSupervisor(q)
 		go super.Start()
 	}
