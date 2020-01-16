@@ -89,7 +89,7 @@ type Task struct {
 	State    TaskState      `json:"State"`
 	Config   []TaskConfig   `json:"Config" gorm:"ForeignKey:TaskID"`
 	Metadata []TaskMetadata `json:"Metadata" gorm:"ForeignKey:TaskID"`
-	Commands []Command      `json:"Commands" gorm:"ForeignKey:TaskID"`
+	Commands []*Command      `json:"Commands" gorm:"ForeignKey:TaskID"`
 }
 
 type TaskConfig struct {
