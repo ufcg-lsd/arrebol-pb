@@ -88,6 +88,13 @@ func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 
 	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
 	err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
+	for _, task := range job.Tasks {
+		var t Task
+		db := s.driver.First(&t, task.ID)
+		db.Related(&task.Commands)
+		db.Related(&task.Metadata)
+		db.Related(&task.Config)
+	}
 	return &job, err
 }
 
