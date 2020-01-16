@@ -35,12 +35,20 @@ type JobResponse struct {
 	State     string     `json:"State"`
 	CreatedAt time.Time  `json:"CreatedAt"`
 	UpdatedAt time.Time  `json:"UpdatedAt"`
-	Tasks     *[]TaskResponse `json:"Tasks"`
+	Tasks     []*TaskResponse `json:"Tasks"`
 }
 
 type TaskResponse struct {
 	ID        uint     `json:"ID"`
 	State    string      `json:"State"`
+	Commands     []*CommandResponse `json:"Commands"`
+}
+
+type CommandResponse struct {
+	ID 			uint 	`json:"ID"`
+	State    	string	`json:"State"`
+	RawCommand 	string	`json:"RawCommand"`
+	ExitCode 	int8	`json:"ExitCode"`
 }
 
 type ErrorResponse struct {
@@ -221,7 +229,7 @@ func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 			Status:  http.StatusNotFound,
 		})
 	} else {
-		write(w, http.StatusOK, responseFromJob(job))
+		write(w, http.StatusOK, newJobResponse(job))
 	}
 }
 
@@ -250,27 +258,42 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	}
 }
 
-func responseFromJob(job *storage.Job) *JobResponse {
-	tasksResponse := responseFromTasks(job.Tasks)
+func newJobResponse(job *storage.Job) *JobResponse {
+	tsr := newTasksResponse(job.Tasks)
 	return &JobResponse{
 		ID:        job.ID,
 		Label:     job.Label,
 		State:     job.State.String(),
 		CreatedAt: job.CreatedAt,
 		UpdatedAt: job.UpdatedAt,
-		Tasks:     tasksResponse,
+		Tasks:     tsr,
 	}
 }
 
-func responseFromTasks(tasks []*storage.Task) *[]TaskResponse {
-	var tasksResponse []TaskResponse
+func newTasksResponse(tasks []*storage.Task) []*TaskResponse {
+	var tsr []*TaskResponse
 	for _, task := range tasks {
-		tasksResponse = append(tasksResponse, TaskResponse{
-			task.ID,
-			task.State.String(),
+		commandsResponse := newCommandResponse(task.Commands)
+		tsr = append(tsr, &TaskResponse{
+			ID:       task.ID,
+			State:    task.State.String(),
+			Commands: commandsResponse,
 		})
 	}
-	return &tasksResponse
+	return tsr
+}
+
+func newCommandResponse(commands []*storage.Command) []*CommandResponse {
+	var cr []*CommandResponse
+	for _, cmd := range commands {
+		cr = append(cr, &CommandResponse{
+			ID:         cmd.ID,
+			State:      cmd.State.String(),
+			RawCommand: cmd.RawCommand,
+			ExitCode:   cmd.ExitCode,
+		})
+	}
+	return cr
 }
 
 func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint) *QueueResponse {
@@ -304,10 +327,10 @@ func extractFromSpec(spec JobSpec) *storage.Job {
 	}
 }
 
-func extractCommands(spec *TaskSpec) []storage.Command {
-	var commands []storage.Command
+func extractCommands(spec *TaskSpec) []*storage.Command {
+	var commands []*storage.Command
 	for _, cmd := range spec.Commands {
-		commands = append(commands, storage.Command{
+		commands = append(commands, &storage.Command{
 			ExitCode:   -1,
 			RawCommand: cmd,
 			State:      storage.CmdNotStarted,

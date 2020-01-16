@@ -51,14 +51,14 @@ func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskSt
 	w.state = Working
 	task.State = storage.TaskRunning
 	for _, cmd := range task.Commands {
-		w.ExecuteCmd(&cmd)
+		w.ExecuteCmd(cmd)
 	}
 
 	var executed []*storage.Command
 	flawed := false
 
 	for _, cmd := range task.Commands {
-		executed = append(executed, &cmd)
+		executed = append(executed, cmd)
 		if cmd.State == storage.CmdFailed {
 			flawed = true
 		}
