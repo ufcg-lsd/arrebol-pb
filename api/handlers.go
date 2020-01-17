@@ -209,7 +209,7 @@ func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 			Status:  http.StatusInternalServerError,
 		})
 	} else {
-		write(w, http.StatusOK, jobs)
+		write(w, http.StatusOK, newJobResponses(jobs))
 	}
 }
 
@@ -256,6 +256,14 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	if err := json.NewEncoder(w).Encode(i); err != nil {
 		log.Println(EncodeResErr)
 	}
+}
+
+func newJobResponses(jobs []storage.Job) []JobResponse {
+	var jr []JobResponse
+	for _, job := range jobs {
+		jr = append(jr, *newJobResponse(&job))
+	}
+	return jr
 }
 
 func newJobResponse(job *storage.Job) *JobResponse {

@@ -88,13 +88,7 @@ func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 
 	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
 	err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
-	for _, task := range job.Tasks {
-		var t Task
-		db := s.driver.First(&t, task.ID)
-		db.Related(&task.Commands)
-		db.Related(&task.Metadata)
-		db.Related(&task.Config)
-	}
+	s.fillTasks(job.Tasks)
 	return &job, err
 }
 
@@ -104,7 +98,25 @@ func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
 	log.Printf("Retrieving jobs of queue %d", queueID)
 	err := s.driver.Where("queue_id = ?", queueID).Find(&jobs).Error
 
+	for i, job := range jobs {
+		s.driver.First(&job, job.ID).Related(&job.Tasks)
+		s.fillTasks(job.Tasks)
+		jobs[i] = job
+	}
+
 	return jobs, err
+}
+
+func (s *Storage) fillTasks(tasks []*Task) {
+	for _, task := range tasks {
+		s.fillTask(task)
+	}
+}
+func (s *Storage) fillTask(task *Task) {
+	db := s.driver.First(&task, task.ID)
+	db.Related(&task.Commands)
+	db.Related(&task.Metadata)
+	db.Related(&task.Config)
 }
 
 func (s *Storage) GetDefaultQueue() (*Queue, error) {
