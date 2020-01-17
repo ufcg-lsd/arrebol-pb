@@ -12,10 +12,10 @@ type Supervisor struct {
 	mux              sync.Mutex
 }
 
-func NewSupervisor(queue *storage.Queue) *Supervisor {
+func NewSupervisor(queue *storage.Queue, db *storage.Storage) *Supervisor {
 	return &Supervisor{
 		queue:        queue,
-		scheduler:    NewScheduler(Fifo),
+		scheduler:    NewScheduler(Fifo, db),
 	}
 }
 

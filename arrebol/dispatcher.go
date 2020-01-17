@@ -27,7 +27,7 @@ func (d *Dispatcher) HireSupervisor(queue *storage.Queue) *Supervisor {
 
 	log.Printf("Hiring new supervisor to the queue %d", queue.ID)
 
-	super := NewSupervisor(queue)
+	super := NewSupervisor(queue, d.db)
 	d.supervisors[queue.ID] = super
 
 	return super

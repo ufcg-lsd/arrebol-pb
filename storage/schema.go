@@ -125,7 +125,7 @@ const (
 )
 
 func (cs CommandState) String() string {
-	return [...]string{"NotStarted", "Running", "Failed", "Finished"}[cs]
+	return [...]string{"NotStarted", "Running", "Finished", "Failed"}[cs]
 }
 
 type Command struct {

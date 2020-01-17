@@ -14,9 +14,10 @@ const (
 )
 
 type Worker struct {
-	id     string
-	driver Driver
-	state WorkerState
+	id     	string
+	driver 	Driver
+	state 	WorkerState
+	db		*storage.Storage
 }
 
 type Driver uint
@@ -33,12 +34,13 @@ const (
 	Working
 )
 
-func NewWorker(driver Driver) *Worker {
+func NewWorker(driver Driver, s *storage.Storage) *Worker {
 	id, _ := uuid.GenerateUUID()
 	return &Worker{
 		id: id,
 		driver: driver,
 		state: Sleeping,
+		db:s,
 	}
 }
 
@@ -75,6 +77,7 @@ func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskSt
 
 func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 	cmd.State = storage.CmdRunning
+	w.db.SaveCommand(cmd)
 	cmdStr := cmd.RawCommand
 	parts := strings.Fields(cmdStr)
 	head := parts[0]
@@ -90,4 +93,5 @@ func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 		cmd.State = storage.CmdFinished
 		cmd.ExitCode = SuccessExitCode
 	}
+	w.db.SaveCommand(cmd)
 }

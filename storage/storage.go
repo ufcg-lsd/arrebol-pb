@@ -84,6 +84,10 @@ func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }
 
+func (s *Storage) SaveCommand(command *Command) error {
+	return s.driver.Save(&command).Error
+}
+
 func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 	var queue Queue
 	var job Job

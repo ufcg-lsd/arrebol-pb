@@ -15,6 +15,7 @@ type Scheduler struct {
 	pendingPlans chan *AllocationPlan
 	policy       Policy
 	mutex        sync.Mutex
+	db			*storage.Storage
 }
 
 type Policy uint
@@ -38,19 +39,20 @@ func (p Policy) schedule(plans chan *AllocationPlan) {
 	}
 }
 
-func NewScheduler(policy Policy) *Scheduler {
+func NewScheduler(policy Policy, db *storage.Storage) *Scheduler {
 	return &Scheduler{
 		policy:       policy,
 		workers:      make([]*Worker, 0),
 		pendingTasks: make(chan *storage.Task),
 		pendingPlans: make(chan *AllocationPlan),
+		db:db,
 	}
 }
 
 func (s *Scheduler) Start() {
 	// only support raw workers, for now, meaning jobs sent to the supervisor of this scheduler will run
 	// uninsulated and on the Unix-type host operating system
-	s.HireRawWorkers(Raw)
+	s.HireRawWorkers(Raw, s.db)
 	go s.inferPlans()
 	s.Schedule()
 }
@@ -60,14 +62,14 @@ func (s *Scheduler) Schedule() {
 }
 
 // should be specific by node
-func (s *Scheduler) HireRawWorkers(driver Driver) {
+func (s *Scheduler) HireRawWorkers(driver Driver, db *storage.Storage) {
 	switch driver {
 	case Raw:
 		log.Println("just support system level execution with static pool of workers")
 		pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 
 		for i := 0; i < pool; i++ {
-			s.workers = append(s.workers, NewWorker(Raw))
+			s.workers = append(s.workers, NewWorker(Raw, s.db))
 		}
 
 	case Docker:
