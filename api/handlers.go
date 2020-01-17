@@ -225,7 +225,7 @@ func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		write(w, http.StatusNotFound, ErrorResponse{
-			Message:  fmt.Sprintf("Job with ID %d not found in queue %d", jobID, queueID),
+			Message:  err.Error(),
 			Status:  http.StatusNotFound,
 		})
 	} else {

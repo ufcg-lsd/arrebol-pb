@@ -31,6 +31,15 @@ type Queue struct {
 	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
 }
 
+func (q Queue) contains(jobId uint) bool {
+	for _, job := range q.Jobs {
+		if job.ID == jobId {
+			return true
+		}
+	}
+	return false
+}
+
 type ResourceState uint8
 
 const (

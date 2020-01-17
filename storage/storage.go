@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -84,12 +85,19 @@ func (s *Storage) SaveJob(job *Job) error {
 }
 
 func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
+	var queue Queue
 	var job Job
 
-	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
-	err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
-	s.fillTasks(job.Tasks)
-	return &job, err
+	err := s.driver.First(&queue, queueId).Related(&queue.Jobs).Error
+	if queue.contains(jobID) {
+		log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
+		err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
+		s.fillTasks(job.Tasks)
+		return &job, err
+	} else {
+		err = errors.New(fmt.Sprintf("Job [%d] not found on queue [%d]", jobID, queueId))
+	}
+	return nil, err
 }
 
 func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
