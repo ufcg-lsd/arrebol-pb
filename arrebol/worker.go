@@ -17,7 +17,6 @@ type Worker struct {
 	id     	string
 	driver 	Driver
 	state 	WorkerState
-	db		*storage.Storage
 }
 
 type Driver uint
@@ -34,13 +33,12 @@ const (
 	Working
 )
 
-func NewWorker(driver Driver, s *storage.Storage) *Worker {
+func NewWorker(driver Driver) *Worker {
 	id, _ := uuid.GenerateUUID()
 	return &Worker{
 		id: id,
 		driver: driver,
 		state: Sleeping,
-		db:s,
 	}
 }
 
@@ -49,18 +47,12 @@ func (w *Worker) MatchAny(task *storage.Task) bool {
 	return w.state == Sleeping
 }
 
-func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskState){
+func (w *Worker) Execute(task *storage.Task) (storage.TaskState){
 	w.state = Working
 	task.State = storage.TaskRunning
+	flawed := false
 	for _, cmd := range task.Commands {
 		w.ExecuteCmd(cmd)
-	}
-
-	var executed []*storage.Command
-	flawed := false
-
-	for _, cmd := range task.Commands {
-		executed = append(executed, cmd)
 		if cmd.State == storage.CmdFailed {
 			flawed = true
 		}
@@ -72,12 +64,12 @@ func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskSt
 		task.State = storage.TaskFinished
 	}
 	w.state = Sleeping
-	return executed, task.State
+	return task.State
 }
 
 func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 	cmd.State = storage.CmdRunning
-	w.db.SaveCommand(cmd)
+	storage.DB.SaveCommand(cmd)
 	cmdStr := cmd.RawCommand
 	parts := strings.Fields(cmdStr)
 	head := parts[0]
@@ -93,5 +85,5 @@ func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 		cmd.State = storage.CmdFinished
 		cmd.ExitCode = SuccessExitCode
 	}
-	w.db.SaveCommand(cmd)
+	storage.DB.SaveCommand(cmd)
 }

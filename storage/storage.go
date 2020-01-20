@@ -12,6 +12,8 @@ type Storage struct {
 	driver *gorm.DB
 }
 
+var DB *Storage
+
 func NewDB(host string, port string, user string, dbname string, password string) *Storage {
 	dbAddr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		host, port, user, dbname, password)
@@ -29,11 +31,11 @@ func NewDB(host string, port string, user string, dbname string, password string
 
 	// driver.LogMode(true)
 
-	storage := &Storage{
+	DB = &Storage{
 		driver,
 	}
 
-	return storage
+	return DB
 }
 
 func (s *Storage) SetUp() {
