@@ -47,9 +47,10 @@ func (w *Worker) MatchAny(task *storage.Task) bool {
 	return w.state == Sleeping
 }
 
-func (w *Worker) Execute(task *storage.Task) (storage.TaskState){
+func (w *Worker) Execute(task *storage.Task) {
 	w.state = Working
 	task.State = storage.TaskRunning
+	storage.DB.SaveTask(task)
 	flawed := false
 	for _, cmd := range task.Commands {
 		w.ExecuteCmd(cmd)
@@ -63,8 +64,8 @@ func (w *Worker) Execute(task *storage.Task) (storage.TaskState){
 	} else {
 		task.State = storage.TaskFinished
 	}
+	storage.DB.SaveTask(task)
 	w.state = Sleeping
-	return task.State
 }
 
 func (w *Worker) ExecuteCmd(cmd *storage.Command) {

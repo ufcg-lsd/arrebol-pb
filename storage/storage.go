@@ -86,6 +86,10 @@ func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }
 
+func (s *Storage) SaveTask(task *Task) error {
+	return s.driver.Save(&task).Error
+}
+
 func (s *Storage) SaveCommand(command *Command) error {
 	return s.driver.Save(&command).Error
 }

@@ -89,7 +89,7 @@ const (
 )
 
 func (ts TaskState) String() string {
-	return [...]string{"Pending", "Running", "Failed", "Finished"}[ts]
+	return [...]string{"Pending", "Running", "Finished", "Failed"}[ts]
 }
 
 type Task struct {
