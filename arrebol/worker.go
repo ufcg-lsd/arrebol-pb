@@ -50,7 +50,7 @@ func (w *Worker) MatchAny(task *storage.Task) bool {
 func (w *Worker) Execute(task *storage.Task) {
 	w.state = Working
 	task.State = storage.TaskRunning
-	storage.DB.SaveTask(task)
+	_ = storage.DB.SaveTask(task)
 	flawed := false
 	for _, cmd := range task.Commands {
 		w.ExecuteCmd(cmd)
@@ -64,13 +64,13 @@ func (w *Worker) Execute(task *storage.Task) {
 	} else {
 		task.State = storage.TaskFinished
 	}
-	storage.DB.SaveTask(task)
+	_ = storage.DB.SaveTask(task)
 	w.state = Sleeping
 }
 
 func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 	cmd.State = storage.CmdRunning
-	storage.DB.SaveCommand(cmd)
+	_ = storage.DB.SaveCommand(cmd)
 	cmdStr := cmd.RawCommand
 	parts := strings.Fields(cmdStr)
 	head := parts[0]
@@ -86,5 +86,5 @@ func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 		cmd.State = storage.CmdFinished
 		cmd.ExitCode = SuccessExitCode
 	}
-	storage.DB.SaveCommand(cmd)
+	_ = storage.DB.SaveCommand(cmd)
 }

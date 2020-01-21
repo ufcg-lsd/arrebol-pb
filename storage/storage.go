@@ -86,6 +86,12 @@ func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }
 
+func (s *Storage) SetJobState(jobID uint, state JobState) {
+	var job Job
+	s.driver.First(&job, jobID)
+	s.driver.Model(&job).Update("State", state)
+}
+
 func (s *Storage) SaveTask(task *Task) error {
 	return s.driver.Save(&task).Error
 }

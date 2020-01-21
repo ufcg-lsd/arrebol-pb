@@ -68,7 +68,7 @@ const (
 )
 
 func (js JobState) String() string {
-	return [...]string{"Queued", "Running", "Failed", "Finished"}[js]
+	return [...]string{"Queued", "Running", "Finished", "Failed"}[js]
 }
 
 type Job struct {
