@@ -14,9 +14,9 @@ const (
 )
 
 type Worker struct {
-	id     string
-	driver Driver
-	state WorkerState
+	id     	string
+	driver 	Driver
+	state 	WorkerState
 }
 
 type Driver uint
@@ -47,18 +47,13 @@ func (w *Worker) MatchAny(task *storage.Task) bool {
 	return w.state == Sleeping
 }
 
-func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskState){
+func (w *Worker) Execute(task *storage.Task) {
 	w.state = Working
 	task.State = storage.TaskRunning
+	_ = storage.DB.SaveTask(task)
+	flawed := false
 	for _, cmd := range task.Commands {
 		w.ExecuteCmd(cmd)
-	}
-
-	var executed []*storage.Command
-	flawed := false
-
-	for _, cmd := range task.Commands {
-		executed = append(executed, cmd)
 		if cmd.State == storage.CmdFailed {
 			flawed = true
 		}
@@ -69,12 +64,13 @@ func (w *Worker) Execute(task *storage.Task) ([]*storage.Command, storage.TaskSt
 	} else {
 		task.State = storage.TaskFinished
 	}
+	_ = storage.DB.SaveTask(task)
 	w.state = Sleeping
-	return executed, task.State
 }
 
 func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 	cmd.State = storage.CmdRunning
+	_ = storage.DB.SaveCommand(cmd)
 	cmdStr := cmd.RawCommand
 	parts := strings.Fields(cmdStr)
 	head := parts[0]
@@ -90,4 +86,5 @@ func (w *Worker) ExecuteCmd(cmd *storage.Command) {
 		cmd.State = storage.CmdFinished
 		cmd.ExitCode = SuccessExitCode
 	}
+	_ = storage.DB.SaveCommand(cmd)
 }

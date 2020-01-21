@@ -88,7 +88,6 @@ type AllocationPlan struct {
 
 func (a *AllocationPlan) execute() {
 	a.worker.Execute(a.task)
-
 }
 
 // Seeding to the channel of plans.

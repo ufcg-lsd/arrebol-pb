@@ -31,6 +31,15 @@ type Queue struct {
 	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
 }
 
+func (q Queue) contains(jobId uint) bool {
+	for _, job := range q.Jobs {
+		if job.ID == jobId {
+			return true
+		}
+	}
+	return false
+}
+
 type ResourceState uint8
 
 const (
@@ -59,7 +68,7 @@ const (
 )
 
 func (js JobState) String() string {
-	return [...]string{"Queued", "Running", "Failed", "Finished"}[js]
+	return [...]string{"Queued", "Running", "Finished", "Failed"}[js]
 }
 
 type Job struct {
@@ -80,7 +89,7 @@ const (
 )
 
 func (ts TaskState) String() string {
-	return [...]string{"Pending", "Running", "Failed", "Finished"}[ts]
+	return [...]string{"Pending", "Running", "Finished", "Failed"}[ts]
 }
 
 type Task struct {
@@ -116,7 +125,7 @@ const (
 )
 
 func (cs CommandState) String() string {
-	return [...]string{"NotStarted", "Running", "Failed", "Finished"}[cs]
+	return [...]string{"NotStarted", "Running", "Finished", "Failed"}[cs]
 }
 
 type Command struct {

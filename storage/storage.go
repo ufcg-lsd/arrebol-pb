@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -10,6 +11,8 @@ import (
 type Storage struct {
 	driver *gorm.DB
 }
+
+var DB *Storage
 
 func NewDB(host string, port string, user string, dbname string, password string) *Storage {
 	dbAddr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
@@ -28,11 +31,11 @@ func NewDB(host string, port string, user string, dbname string, password string
 
 	// driver.LogMode(true)
 
-	storage := &Storage{
+	DB = &Storage{
 		driver,
 	}
 
-	return storage
+	return DB
 }
 
 func (s *Storage) SetUp() {
@@ -83,13 +86,34 @@ func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }
 
+func (s *Storage) SetJobState(jobID uint, state JobState) {
+	var job Job
+	s.driver.First(&job, jobID)
+	s.driver.Model(&job).Update("State", state)
+}
+
+func (s *Storage) SaveTask(task *Task) error {
+	return s.driver.Save(&task).Error
+}
+
+func (s *Storage) SaveCommand(command *Command) error {
+	return s.driver.Save(&command).Error
+}
+
 func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
+	var queue Queue
 	var job Job
 
-	log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
-	err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
-	s.fillTasks(job.Tasks)
-	return &job, err
+	err := s.driver.First(&queue, queueId).Related(&queue.Jobs).Error
+	if queue.contains(jobID) {
+		log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
+		err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
+		s.fillTasks(job.Tasks)
+		return &job, err
+	} else {
+		err = errors.New(fmt.Sprintf("Job [%d] not found on queue [%d]", jobID, queueId))
+	}
+	return nil, err
 }
 
 func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
