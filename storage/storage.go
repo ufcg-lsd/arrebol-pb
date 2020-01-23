@@ -55,6 +55,8 @@ func (s *Storage) RetrieveQueue(queueID uint) (*Queue, error) {
 	var queue Queue
 	log.Println(fmt.Sprintf("Retrieving queue %d", queueID))
 	err := s.driver.First(&queue, queueID).Error
+	queue.Jobs, _ = s.RetrieveJobsByQueueID(queueID)
+	// TODO Retrieve resource nodes of queue
 	log.Println(queue)
 	return &queue, err
 }
@@ -116,8 +118,8 @@ func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 	return nil, err
 }
 
-func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]Job, error) {
-	var jobs []Job
+func (s *Storage) RetrieveJobsByQueueID(queueID uint) ([]*Job, error) {
+	var jobs []*Job
 
 	log.Printf("Retrieving jobs of queue %d", queueID)
 	err := s.driver.Where("queue_id = ?", queueID).Find(&jobs).Error

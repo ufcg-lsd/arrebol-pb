@@ -258,10 +258,10 @@ func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	}
 }
 
-func newJobResponses(jobs []storage.Job) []JobResponse {
+func newJobResponses(jobs []*storage.Job) []JobResponse {
 	var jr []JobResponse
 	for _, job := range jobs {
-		jr = append(jr, *newJobResponse(&job))
+		jr = append(jr, *newJobResponse(job))
 	}
 	return jr
 }
