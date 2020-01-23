@@ -4,6 +4,7 @@ import (
 	"github.com/emanueljoivo/arrebol/storage"
 	"log"
 	"sync"
+	"time"
 )
 
 type Supervisor struct {
@@ -33,6 +34,51 @@ func (s *Supervisor) Collect(job *storage.Job) {
 		task.State = storage.TaskPending
 		s.scheduler.AddTask(task)
 	}
+	go s.jobStateMonitor(job.ID)
+}
+
+func (s *Supervisor) jobStateMonitor(jobId uint) {
+	for {
+		job, _ := storage.DB.RetrieveJobByQueue(jobId, s.queue.ID)
+		js := s.getJobState(*job)
+		storage.DB.SetJobState(job.ID, js)
+		if job.State == storage.JobFinished || job.State == storage.JobFailed {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func (s *Supervisor) getJobState(job storage.Job) storage.JobState {
+	var jobState storage.JobState
+	if s.isAll([]storage.TaskState{storage.TaskFailed}, job.Tasks) {
+		jobState = storage.JobFailed
+	} else if s.isAll([]storage.TaskState{storage.TaskFailed, storage.TaskFinished}, job.Tasks) {
+		jobState = storage.JobFinished
+	} else if s.isAll([]storage.TaskState{storage.TaskPending}, job.Tasks) {
+		jobState = storage.JobQueued
+	} else {
+		jobState = storage.JobRunning
+	}
+	return jobState
+}
+
+func (s *Supervisor) isAll(states []storage.TaskState, tasks []*storage.Task) bool {
+	for _, t := range tasks {
+		if !contains(t.State, states) {
+			return false
+		}
+	}
+	return true
+}
+
+func contains(e storage.TaskState, arr []storage.TaskState) bool {
+	for _, a := range arr {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Supervisor) pokeScheduler() {
