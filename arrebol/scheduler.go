@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // no preemptive
@@ -18,6 +19,8 @@ type Scheduler struct {
 }
 
 type Policy uint
+
+const TaskRetryTimeInterval = 10 * time.Second
 
 const (
 	Fifo Policy = iota
@@ -95,35 +98,47 @@ func (a *AllocationPlan) execute() {
 // Ever that a new task exists this method will be called
 // generating a new resource allocation plan to execute the task
 func (s *Scheduler) inferPlans() {
-	for task := range s.pendingTasks {
-		log.Println("new pending task")
+	for {
+		task := <- s.pendingTasks
+		log.Printf("Planning to run task [%d]", task.ID)
 
 		plan := s.inferPlanForTask(task)
 
 		if plan != nil {
 			s.pendingPlans <- plan // a channel is used here because only fifo's policy is supported
 		} else {
-			s.pendingTasks <- task
+			go func() {
+				time.Sleep(TaskRetryTimeInterval)
+				s.pendingTasks <- task
+				log.Printf("Retring the task [%d]", task.ID)
+			}()
 		}
 	}
+
 }
 
-func (s *Scheduler) inferPlanForTask(task *storage.Task) *AllocationPlan {
+func (s *Scheduler) inferPlanForTask(task *storage.Task) (a *AllocationPlan) {
 	s.mutex.Lock()
 	var w *Worker
+	log.Printf("Searching worker for task [%d]", task.ID)
 	for _, worker := range s.workers {
 		if worker.MatchAny(task) {
+			worker.state = Working
+			log.Printf("The task [%d] matched with the worker [%s]", task.ID, worker.id)
 			w = worker
+			break
 		}
 	}
-	defer s.mutex.Unlock()
 	if w != nil {
-		return	&AllocationPlan{
+		//w.state = Busy
+		//storage.DB.SetWorkerState(w.id, Busy)
+		// TODO Change task state
+		a = &AllocationPlan{
 			task: task,
 			worker: w,
 		}
-	} else {
-		return nil
 	}
+	defer s.mutex.Unlock()
+	return a
 }
 

@@ -53,9 +53,7 @@ func (s *Storage) SaveQueue(q *Queue) error {
 
 func (s *Storage) RetrieveQueue(queueID uint) (*Queue, error) {
 	var queue Queue
-	log.Println(fmt.Sprintf("Retrieving queue %d", queueID))
 	err := s.driver.First(&queue, queueID).Error
-	log.Println(queue)
 	return &queue, err
 }
 
@@ -106,7 +104,6 @@ func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 
 	err := s.driver.First(&queue, queueId).Related(&queue.Jobs).Error
 	if queue.contains(jobID) {
-		log.Println(fmt.Sprintf("Retrieving job %d of queue %d", jobID, queueId))
 		err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
 		s.fillTasks(job.Tasks)
 		return &job, err
