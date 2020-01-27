@@ -31,6 +31,7 @@ type WorkerState uint
 const (
 	Sleeping WorkerState = iota
 	Working
+	Busy
 )
 
 func NewWorker(driver Driver) *Worker {
