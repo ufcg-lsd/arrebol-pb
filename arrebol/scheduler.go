@@ -117,28 +117,25 @@ func (s *Scheduler) inferPlans() {
 
 }
 
-func (s *Scheduler) inferPlanForTask(task *storage.Task) (a *AllocationPlan) {
+func (s *Scheduler) inferPlanForTask(task *storage.Task) *AllocationPlan {
 	s.mutex.Lock()
-	var w *Worker
 	log.Printf("Searching worker for task [%d]", task.ID)
 	for _, worker := range s.workers {
 		if worker.MatchAny(task) {
-			worker.state = Working
 			log.Printf("The task [%d] matched with the worker [%s]", task.ID, worker.id)
-			w = worker
-			break
-		}
-	}
-	if w != nil {
-		//w.state = Busy
-		//storage.DB.SetWorkerState(w.id, Busy)
-		// TODO Change task state
-		a = &AllocationPlan{
-			task: task,
-			worker: w,
+			return s.makePlan(worker, task)
 		}
 	}
 	defer s.mutex.Unlock()
-	return a
+	return nil
+}
+
+func (s *Scheduler) makePlan(w *Worker, t *storage.Task) *AllocationPlan {
+	w.state = Busy
+	// TODO Change task state to pending or queued
+	return &AllocationPlan{
+		task: t,
+		worker: w,
+	}
 }
 
