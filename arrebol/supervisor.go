@@ -41,7 +41,10 @@ func (s *Supervisor) jobStateMonitor(jobId uint) {
 	for {
 		job, _ := storage.DB.RetrieveJobByQueue(jobId, s.queue.ID)
 		js := s.getJobState(*job)
-		storage.DB.SetJobState(job.ID, js)
+		if job.State != js {
+			storage.DB.SetJobState(job.ID, js)
+			log.Printf("Updated Job [%d] to state [%s]", jobId, js.String())
+		}
 		if job.State == storage.JobFinished || job.State == storage.JobFailed {
 			break
 		}

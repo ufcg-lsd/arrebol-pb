@@ -43,7 +43,6 @@ func NewWorker(driver Driver) *Worker {
 }
 
 func (w *Worker) MatchAny(task *storage.Task) bool {
-	log.Printf("matching task %d", task.ID)
 	return w.state == Sleeping
 }
 
