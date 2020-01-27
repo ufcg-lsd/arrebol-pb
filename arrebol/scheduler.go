@@ -1,6 +1,7 @@
 package arrebol
 
 import (
+	"github.com/emanueljoivo/arrebol/arrebol/driver"
 	"github.com/emanueljoivo/arrebol/storage"
 	"log"
 	"os"
@@ -53,7 +54,7 @@ func NewScheduler(policy Policy) *Scheduler {
 func (s *Scheduler) Start() {
 	// only support raw workers, for now, meaning jobs sent to the supervisor of this scheduler will run
 	// uninsulated and on the Unix-type host operating system
-	s.HireRawWorkers(Raw)
+	s.HireWorkers(&driver.RawDriver{})
 	go s.inferPlans()
 	s.Schedule()
 }
@@ -63,20 +64,12 @@ func (s *Scheduler) Schedule() {
 }
 
 // should be specific by node
-func (s *Scheduler) HireRawWorkers(driver Driver) {
-	switch driver {
-	case Raw:
-		log.Println("just support system level execution with static pool of workers")
-		pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
+func (s *Scheduler) HireWorkers(driver driver.Driver) {
+	log.Println("just support system level execution with static pool of workers")
+	pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 
-		for i := 0; i < pool; i++ {
-			s.workers = append(s.workers, NewWorker(Raw))
-		}
-
-	case Docker:
-		log.Println("not supported yet")
-	default:
-		log.Println("no worker type")
+	for i := 0; i < pool; i++ {
+		s.workers = append(s.workers, NewWorker(driver))
 	}
 }
 
