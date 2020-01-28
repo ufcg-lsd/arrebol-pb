@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // no preemptive
@@ -18,6 +19,8 @@ type Scheduler struct {
 }
 
 type Policy uint
+
+const TaskRetryTimeInterval = 10 * time.Second
 
 const (
 	Fifo Policy = iota
@@ -39,10 +42,9 @@ func (p Policy) schedule(plans chan *AllocationPlan) {
 }
 
 func NewScheduler(policy Policy) *Scheduler {
-	defaultWorkerPool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
 	return &Scheduler{
 		policy:       policy,
-		workers:      make([]*Worker, defaultWorkerPool),
+		workers:      make([]*Worker, 0),
 		pendingTasks: make(chan *storage.Task),
 		pendingPlans: make(chan *AllocationPlan),
 	}
@@ -89,7 +91,6 @@ type AllocationPlan struct {
 
 func (a *AllocationPlan) execute() {
 	a.worker.Execute(a.task)
-
 }
 
 // Seeding to the channel of plans.
@@ -97,35 +98,44 @@ func (a *AllocationPlan) execute() {
 // Ever that a new task exists this method will be called
 // generating a new resource allocation plan to execute the task
 func (s *Scheduler) inferPlans() {
-	for task := range s.pendingTasks {
-		log.Println("new pending task")
+	for {
+		task := <- s.pendingTasks
+		log.Printf("Planning to run task [%d]", task.ID)
 
 		plan := s.inferPlanForTask(task)
 
 		if plan != nil {
 			s.pendingPlans <- plan // a channel is used here because only fifo's policy is supported
 		} else {
-			s.pendingTasks <- task
+			go func() {
+				time.Sleep(TaskRetryTimeInterval)
+				s.pendingTasks <- task
+				log.Printf("Retring the task [%d]", task.ID)
+			}()
 		}
 	}
+
 }
 
 func (s *Scheduler) inferPlanForTask(task *storage.Task) *AllocationPlan {
 	s.mutex.Lock()
-	var w *Worker
+	log.Printf("Searching worker for task [%d]", task.ID)
 	for _, worker := range s.workers {
 		if worker.MatchAny(task) {
-			w = worker
+			log.Printf("The task [%d] matched with the worker [%s]", task.ID, worker.id)
+			return s.makePlan(worker, task)
 		}
 	}
 	defer s.mutex.Unlock()
-	if w != nil {
-		return	&AllocationPlan{
-			task: task,
-			worker: w,
-		}
-	} else {
-		return nil
+	return nil
+}
+
+func (s *Scheduler) makePlan(w *Worker, t *storage.Task) *AllocationPlan {
+	w.state = Busy
+	// TODO Change task state to pending or queued
+	return &AllocationPlan{
+		task: t,
+		worker: w,
 	}
 }
 

@@ -9,7 +9,6 @@ import (
 type Dispatcher struct {
 	jobsAccepted chan *storage.Job
 	supervisors  map[uint]*Supervisor
-	db           *storage.Storage
 	mux          sync.Mutex
 }
 
@@ -17,7 +16,6 @@ func NewDispatcher(db *storage.Storage) *Dispatcher {
 	return &Dispatcher{
 		jobsAccepted: make(chan *storage.Job),
 		supervisors:  make(map[uint]*Supervisor),
-		db:           db,
 	}
 }
 
@@ -47,9 +45,9 @@ func (d *Dispatcher) Start() {
 func (d *Dispatcher) initDefaultSupervisor() {
 	var q *storage.Queue
 
-	q, err := d.db.GetDefaultQueue()
+	q, err := storage.DB.GetDefaultQueue()
 
-	if err != nil && q != nil {
+	if err == nil && q != nil {
 		super := d.HireSupervisor(q)
 		go super.Start()
 	}
