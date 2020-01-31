@@ -101,6 +101,14 @@ type Task struct {
 	Commands []*Command      `json:"Commands" gorm:"ForeignKey:TaskID"`
 }
 
+func (t *Task) GetRawCommands() []string {
+	var raws []string
+	for _, c := range t.Commands {
+		raws = append(raws, c.RawCommand)
+	}
+	return raws
+}
+
 type TaskConfig struct {
 	gorm.Model
 	TaskID uint
