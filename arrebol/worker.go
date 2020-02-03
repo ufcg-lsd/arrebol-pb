@@ -20,11 +20,11 @@ const (
 	Busy
 )
 
-func NewWorker(driver driver.Driver) *Worker {
+func NewWorker(driver2 driver.Driver) *Worker {
 	id, _ := uuid.GenerateUUID()
 	return &Worker{
 		id: id,
-		driver: driver,
+		driver: driver2,
 		state: Sleeping,
 	}
 }

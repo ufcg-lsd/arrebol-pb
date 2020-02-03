@@ -13,12 +13,12 @@ const (
 )
 
 type Driver interface {
-	Execute(t *storage.Task)
+	Execute(t *storage.Task) error
 }
 
 type RawDriver struct {}
 
-func (r *RawDriver) Execute(task *storage.Task) {
+func (r *RawDriver) Execute(task *storage.Task) error {
 	flawed := false
 	for _, cmd := range task.Commands {
 		r.execute(cmd)
@@ -32,6 +32,7 @@ func (r *RawDriver) Execute(task *storage.Task) {
 	} else {
 		task.State = storage.TaskFinished
 	}
+	return nil
 }
 
 func (r *RawDriver) execute(cmd *storage.Command) {

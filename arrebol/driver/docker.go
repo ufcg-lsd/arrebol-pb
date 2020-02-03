@@ -22,12 +22,10 @@ const (
 
 type DockerDriver struct {
 	Id      string
-	Address string
 	Cli     client.Client
 }
 
-func (d *DockerDriver) Execute(task storage.Task) error {
-	task.State = storage.TaskRunning
+func (d *DockerDriver) Execute(task *storage.Task) error {
 	//TODO Receive docker image as a parameter
 	config := helper.ContainerConfig{
 		Name:   d.Id,
@@ -36,9 +34,10 @@ func (d *DockerDriver) Execute(task storage.Task) error {
 	}
 	//TODO Handle errors
 	d.initiate(config)
-	d.send(task)
+	d.send(*task)
 	d.run(strconv.Itoa(int(task.ID)))
 	d.track(task)
+	d.stop()
 	//TODO Check task state
 	task.State = storage.TaskFinished
 	return nil
@@ -81,7 +80,7 @@ func (d *DockerDriver) run(taskId string) error {
 	return helper.Exec(&d.Cli, d.Id, cmd)
 }
 
-func (d *DockerDriver) track(task storage.Task) error {
+func (d *DockerDriver) track(task *storage.Task) error {
 	i := 0
 	for ; i < len(task.Commands);  {
 		ec, _ := d.getExitCodes("task-id")
@@ -114,9 +113,11 @@ func (d *DockerDriver) syncCommands(commands []*storage.Command, exitCodes []int
 			commands[i].State = storage.CmdFailed
 		}
 		commands[i].ExitCode = ec
+		storage.DB.SaveCommand(commands[i])
 	}
 	if i < len(commands) {
 		commands[i].State = storage.CmdRunning
+		storage.DB.SaveCommand(commands[i])
 	}
 	return i
 }

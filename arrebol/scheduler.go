@@ -1,7 +1,9 @@
 package arrebol
 
 import (
+	"fmt"
 	"github.com/emanueljoivo/arrebol/arrebol/driver"
+	"github.com/emanueljoivo/arrebol/helper"
 	"github.com/emanueljoivo/arrebol/storage"
 	"log"
 	"os"
@@ -54,7 +56,7 @@ func NewScheduler(policy Policy) *Scheduler {
 func (s *Scheduler) Start() {
 	// only support raw workers, for now, meaning jobs sent to the supervisor of this scheduler will run
 	// uninsulated and on the Unix-type host operating system
-	s.HireWorkers(&driver.RawDriver{})
+	s.HireWorkers()
 	go s.inferPlans()
 	s.Schedule()
 }
@@ -64,13 +66,25 @@ func (s *Scheduler) Schedule() {
 }
 
 // should be specific by node
-func (s *Scheduler) HireWorkers(driver driver.Driver) {
-	log.Println("just support system level execution with static pool of workers")
-	pool, _ := strconv.Atoi(os.Getenv("STATIC_WORKER_POOL"))
-
-	for i := 0; i < pool; i++ {
-		s.workers = append(s.workers, NewWorker(driver))
+func (s *Scheduler) HireWorkers() {
+	pool, _ := strconv.Atoi(os.Getenv("WORKERS_AMOUNT"))
+	if os.Getenv("DRIVER") == "docker" {
+		address := os.Getenv("WORKER_ADDRESS")
+		cli := helper.NewDockerClient(address)
+		for i := 0; i < pool; i++ {
+			_driver := driver.DockerDriver{
+				Id:  fmt.Sprintf("docker-worker-%d", i),
+				Cli: *cli,
+			}
+			s.workers = append(s.workers, NewWorker(&_driver))
+		}
+	} else {
+		_driver := driver.RawDriver{}
+		for i := 0; i < pool; i++ {
+			s.workers = append(s.workers, NewWorker(&_driver))
+		}
 	}
+	//log.Println("just support system level execution with static pool of workers")
 }
 
 func (s *Scheduler) AddTask(task *storage.Task) {
