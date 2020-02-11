@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	errors "github.com/henrmota/errors-handling-example"
 )
 
 const (
@@ -18,6 +19,8 @@ const (
 	TaskScriptExecutorPath = "./resources/" + TaskScriptExecutorFileName
 	RunTaskScriptCommandPattern = "/bin/bash %s -d -tsf=%s"
 	PoolingPeriodTime = 2 * time.Second
+	DockerImagePropertyKey = "docker_image"
+	DefaultWorkerDockerImage = "wesleymonte/simple-worker"
 )
 
 type DockerDriver struct {
@@ -26,13 +29,15 @@ type DockerDriver struct {
 }
 
 func (d *DockerDriver) Execute(task *storage.Task) error {
-	//TODO Receive docker image as a parameter
+	image, err := task.GetConfig(DockerImagePropertyKey)
+	if err == nil {
+		image = DefaultWorkerDockerImage
+	}
 	config := helper.ContainerConfig{
 		Name:   d.Id,
-		Image:  "wesleymonte/simple-worker",
+		Image:  image,
 		Mounts: []mount.Mount{},
 	}
-	//TODO Handle errors
 	d.initiate(config)
 	d.send(*task)
 	d.run(strconv.Itoa(int(task.ID)))
@@ -43,18 +48,24 @@ func (d *DockerDriver) Execute(task *storage.Task) error {
 	return nil
 }
 
-func (d *DockerDriver) initiate(config helper.ContainerConfig) (err error) {
-	exist, _ := helper.CheckImage(&d.Cli, config.Image)
+func (d *DockerDriver) initiate(config helper.ContainerConfig) error {
+	exist, err := helper.CheckImage(&d.Cli, config.Image)
 	if !exist {
-		//TODO Handle error and add log
-		_, _ = helper.Pull(&d.Cli, config.Image)
+		if _, err = helper.Pull(&d.Cli, config.Image); err != nil {
+			return errors.Wrapf(err, "Error while pulling docker image [%s]", config.Image)
+		}
 	}
 	cid, err := helper.CreateContainer(&d.Cli, config);
-	if err == nil {
-		err = helper.StartContainer(&d.Cli, cid)
-		if err == nil {
-			err = helper.Copy(&d.Cli, cid, TaskScriptExecutorPath, "/tmp/" + TaskScriptExecutorFileName)
-		}
+	if err != nil {
+		return errors.Wrapf(err, "Error while creating container [" + config.Name + "]")
+	}
+	err = helper.StartContainer(&d.Cli, cid)
+	if err != nil {
+		return errors.Wrapf(err, "Error while starting container [" + config.Name + "]")
+	}
+	err = helper.Copy(&d.Cli, cid, TaskScriptExecutorPath, "/tmp/" + TaskScriptExecutorFileName)
+	if err != nil {
+		return errors.Wrapf(err, "Error while copying task script executor [" + TaskScriptExecutorFileName + "]")
 	}
 	return err
 }

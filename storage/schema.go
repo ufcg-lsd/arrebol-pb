@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 func (s *Storage) CreateSchema() {
@@ -107,6 +108,15 @@ func (t *Task) GetRawCommands() []string {
 		raws = append(raws, c.RawCommand)
 	}
 	return raws
+}
+
+func (t *Task) GetConfig(key string) (string, error) {
+	for _, conf := range t.Config {
+		if conf.Key == key {
+			return conf.Value, nil
+		}
+	}
+	return "", errors.New("Config [" + key + "] not found")
 }
 
 type TaskConfig struct {
