@@ -55,7 +55,7 @@ func (d *DockerDriver) Execute(task *storage.Task) error {
 	if err = d.initiate(config); err != nil {
 		return err
 	}
-	if err = d.send(*task); err != nil {
+	if err = d.send(task); err != nil {
 		return err
 	}
 	if err = d.run(strconv.Itoa(int(task.ID))); err != nil {
@@ -105,7 +105,7 @@ func (d *DockerDriver) stop() error {
 	return err
 }
 
-func (d *DockerDriver) send(task storage.Task) error {
+func (d *DockerDriver) send(task *storage.Task) error {
 	taskScriptFileName := "task-id.ts"
 	rawCmdsStr := task.GetRawCommands()
 	err := helper.Write(&d.Cli, d.Id, rawCmdsStr, "/tmp/" + taskScriptFileName)

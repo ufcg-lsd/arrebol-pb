@@ -4,13 +4,15 @@ services:
   arrebol-db:
     image: postgres
     environment:
+      POSTGRES_USER: "arrebol-admin"
       POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "arrebol-db"
     networks:
       - arrebol-net
     ports:
       - "5432:5432"
     volumes:
-      - arrebol:/var/lib/postgresql/data
+      - arrebol-db:/var/lib/postgresql/data
   dba:
     image: dpage/pgadmin4
     environment:
@@ -36,7 +38,8 @@ services:
 #      - "8080:8080"
 
 volumes:
-  arrebol: {}
+  arrebol-db: {}
 
 networks:
   arrebol-net:
+    driver: overlay
