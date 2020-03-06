@@ -23,19 +23,19 @@ services:
     ports:
       - 15432:80
 
-#  arrebol:
-#    image: ufcglsd/arrebol:golang
-#    env_file:
-#      - ./.env
-#    networks:
-#      - arrebol
-#    deploy:
-#      replicas: 1
-#      update_config:
-#        parallelism: 1
-#        delay: 10s
-#    ports:
-#      - "8080:8080"
+  arrebol:
+    image: ufcglsd/arrebol:golang
+    env_file:
+      - ./.env
+    networks:
+      - arrebol
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+    ports:
+      - "8080:8080"
 
 volumes:
   arrebol-db: {}
