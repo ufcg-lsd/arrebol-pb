@@ -15,22 +15,9 @@ usage () {
 }
 
 build_arrebol() {
-  local DB_ADDR=127.0.0.1
-  local DB_USER=arrebol-admin
-  local DB_PASSWD=postgres
-  local DB_NAME=arrebol-db
-  local DB_PORT=5432
-  local WORKER_AMOUNT=5
-
   local DOCKERFILE_DIR=stack/Dockerfile
 
   docker build -t "${DOCKERHUB_REPO}":"${VERSION}" \
-            --build-arg DB_ADDR="${DB_ADDR}" \
-            --build-arg DB_USER="${DB_USER}" \
-            --build-arg DB_PASSWD="${DB_PASSWD}" \
-            --build-arg DB_NAME="${DB_NAME}" \
-            --build-arg DB_PORT="${DB_PORT}" \
-            --build-arg WORKER_AMOUNT="${WORKER_AMOUNT}" \
             --file "${DOCKERFILE_DIR}" .
 }
 

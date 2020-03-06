@@ -24,7 +24,7 @@ services:
       - 15432:80
 
   arrebol:
-    image: ufcglsd/arrebol:golang
+    image: emanueljoivo/arrebol:0.0.4
     env_file:
       - ./.env
     networks:
