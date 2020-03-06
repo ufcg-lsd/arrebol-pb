@@ -2,17 +2,33 @@ package storage
 
 import (
 	"fmt"
+	"github.com/emanueljoivo/arrebol/arrebol/errors"
 	"github.com/jinzhu/gorm"
 )
 
-func (s *Storage) DropIfTablesExists() *gorm.DB {
+func (s *Storage) DropTablesIfExist() *gorm.DB {
 	return s.driver.DropTableIfExists(&Command{}, &TaskConfig{}, &TaskMetadata{},
 		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
 }
 
 func (s *Storage) CreateTables() {
-	s.driver.CreateTable(&Command{}, &TaskConfig{}, &TaskMetadata{},
-		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
+	var tables = map[string]interface{}{
+		"commands": &Command{},
+		"task_configs" : &TaskConfig{},
+		"task_metadata" : &TaskMetadata{},
+		"tasks" : &Task{},
+		"jobs": &Job{},
+		"resource_nodes": &ResourceNode{},
+		"queues": &Queue{},
+	}
+
+	for _, v := range tables {
+		err, _ := s.CreateTable(v)
+
+		if err != nil {
+
+		}
+	}
 }
 
 func (s *Storage) CreateTable(t interface{}) (error, string){
@@ -20,7 +36,7 @@ func (s *Storage) CreateTable(t interface{}) (error, string){
 
 	if clone.Error != nil {
 		var errMsg = fmt.Sprintf("Table %+v already exists", t)
-		return clone.Error, errMsg
+		return errors.New(errMsg), errMsg
 	} else {
 		var successMsg = fmt.Sprintf("Table %+v correctly created", t)
 		return nil, successMsg
@@ -49,7 +65,7 @@ func (s *Storage) ConfigureSchema() {
 }
 
 func (s *Storage) CreateSchema() {
-	s.DropIfTablesExists()
+	s.DropTablesIfExist()
 	s.CreateTables()
 	s.AutoMigrate()
 	s.ConfigureSchema()

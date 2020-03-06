@@ -7,6 +7,9 @@ import (
 
 func TestCreateTables(t *testing.T) {
 	s := OpenDriver()
+	defer CloseDriver(s, t)
+
+	s.DropTablesIfExist()
 
 	t.Run("assertion that there is no table initially", func(t *testing.T) {
 		if s.driver.HasTable(&Command{}) ||
@@ -35,15 +38,8 @@ func TestCreateTables(t *testing.T) {
 		}
 	})
 
-	assertMsg := func(t *testing.T, got, want string, err error) {
-		t.Helper()
-		if got != want {
-			t.Errorf("want %q but got %q", want, got)
-		}
-	}
-
 	t.Run("assertion that two tables don't will be created with same name", func(t *testing.T) {
-		s.DropIfTablesExists()
+		s.DropTablesIfExist()
 
 		t.Run("assertion that the first table are created correctly", func(t *testing.T){
 			cmd := Command{}
@@ -60,19 +56,17 @@ func TestCreateTables(t *testing.T) {
 		})
 	})
 
-	defer t.Cleanup(func() {
-		s.DropIfTablesExists()
-		CloseDriver(s, t)
-	})
+	s.DropTablesIfExist()
 }
 
 func TestDropTables(t *testing.T) {
 	s := OpenDriver()
+	defer CloseDriver(s, t)
 
 	s.CreateTables()
 
 	t.Run("assert drop with tables", func(t *testing.T) {
-		s.DropIfTablesExists()
+		s.DropTablesIfExist()
 		if s.driver.HasTable(&Command{}) ||
 			s.driver.HasTable(&TaskConfig{}) ||
 			s.driver.HasTable(&TaskMetadata{}) ||
@@ -86,15 +80,34 @@ func TestDropTables(t *testing.T) {
 	})
 
 	t.Run("assert drop without tables", func(t *testing.T) {
-		got := s.DropIfTablesExists()
+		got := s.DropTablesIfExist()
 		if  got.Error != nil {
 			t.Errorf("expected that nothing changes but an error occurred")
 		}
 	})
 
-	t.Cleanup(func() {
-		CloseDriver(s, t)
-	})
+	s.DropTablesIfExist()
+}
+
+func TestAutoMigrate(t *testing.T) {
+	s := OpenDriver()
+	defer CloseDriver(s, t)
+	s.DropTablesIfExist()
+
+	cmd := Command{}
+	var want = fmt.Sprintf("Table %+v correctly created", cmd)
+	err, got := s.CreateTable(cmd)
+
+	if err != nil {
+		assertMsg(t, got, want, err)
+	}
+}
+
+func assertMsg(t *testing.T, got, want string, err error) {
+	t.Helper()
+	if got != want {
+		t.Errorf("want %q but got %q", want, got)
+	}
 }
 
 func OpenDriver() *Storage {
