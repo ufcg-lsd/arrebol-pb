@@ -26,16 +26,16 @@ services:
   arrebol:
     image: emanueljoivo/arrebol:0.0.4
     env_file:
-      - ./.env
+      - ../.env
     networks:
-      - arrebol
+      - arrebol-net
     deploy:
       replicas: 1
       update_config:
         parallelism: 1
         delay: 10s
     ports:
-      - "8080:8080"
+      - "5000:5000"
 
 volumes:
   arrebol-db: {}

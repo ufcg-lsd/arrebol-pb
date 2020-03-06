@@ -16,7 +16,7 @@ import (
 
 func main() {
 	const ServerPort = "SERVER_PORT"
-	const DefaultServerPort = "8080"
+	const DefaultServerPort = "5000"
 
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful_timeout", time.Second*15, "the duration for which the server "+
