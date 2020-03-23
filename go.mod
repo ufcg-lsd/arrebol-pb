@@ -14,5 +14,6 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/joho/godotenv v1.3.0
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
+	github.com/pkg/errors v0.8.1
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 )
