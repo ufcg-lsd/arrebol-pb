@@ -3,7 +3,7 @@ package arrebol
 import (
 	"fmt"
 	"github.com/emanueljoivo/arrebol/arrebol/driver"
-	"github.com/emanueljoivo/arrebol/helper"
+	"github.com/emanueljoivo/arrebol/docker"
 	"github.com/emanueljoivo/arrebol/storage"
 	"log"
 	"os"
@@ -70,7 +70,7 @@ func (s *Scheduler) HireWorkers() {
 	pool, _ := strconv.Atoi(os.Getenv("WORKERS_AMOUNT"))
 	if os.Getenv("DRIVER") == "docker" {
 		address := os.Getenv("WORKER_ADDRESS")
-		cli := helper.NewDockerClient(address)
+		cli := docker.NewDockerClient(address)
 		for i := 0; i < pool; i++ {
 			_driver := driver.DockerDriver{
 				Id:  fmt.Sprintf("docker-worker-%d", i),

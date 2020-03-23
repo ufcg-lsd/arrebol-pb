@@ -6,7 +6,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/emanueljoivo/arrebol/arrebol/errors"
-	"github.com/emanueljoivo/arrebol/helper"
+	"github.com/emanueljoivo/arrebol/docker"
 	"github.com/emanueljoivo/arrebol/storage"
 	"log"
 	"strconv"
@@ -47,7 +47,7 @@ func (d *DockerDriver) Execute(task *storage.Task) error {
 	if err == nil {
 		image = DefaultWorkerDockerImage
 	}
-	config := helper.ContainerConfig{
+	config := docker.ContainerConfig{
 		Name:   d.Id,
 		Image:  image,
 		Mounts: []mount.Mount{},
@@ -55,7 +55,7 @@ func (d *DockerDriver) Execute(task *storage.Task) error {
 	if err = d.initiate(config); err != nil {
 		return err
 	}
-	if err = d.send(*task); err != nil {
+	if err = d.send(task); err != nil {
 		return err
 	}
 	if err = d.run(strconv.Itoa(int(task.ID))); err != nil {
@@ -71,22 +71,22 @@ func (d *DockerDriver) Execute(task *storage.Task) error {
 	return nil
 }
 
-func (d *DockerDriver) initiate(config helper.ContainerConfig) error {
-	exist, err := helper.CheckImage(&d.Cli, config.Image)
+func (d *DockerDriver) initiate(config docker.ContainerConfig) error {
+	exist, err := docker.CheckImage(&d.Cli, config.Image)
 	if !exist {
-		if _, err = helper.Pull(&d.Cli, config.Image); err != nil {
+		if _, err = docker.Pull(&d.Cli, config.Image); err != nil {
 			return errors.Wrapf(err, PullImageErrorMsg, config.Image)
 		}
 	}
-	cid, err := helper.CreateContainer(&d.Cli, config);
+	cid, err := docker.CreateContainer(&d.Cli, config);
 	if err != nil {
 		return errors.Wrapf(err, CreateContainerErrorMsg, config.Name)
 	}
-	err = helper.StartContainer(&d.Cli, cid)
+	err = docker.StartContainer(&d.Cli, cid)
 	if err != nil {
 		return errors.Wrapf(err, StartContainerErrorMsg, config.Name)
 	}
-	err = helper.Copy(&d.Cli, cid, TaskScriptExecutorPath, "/tmp/" + TaskScriptExecutorFileName)
+	err = docker.Copy(&d.Cli, cid, TaskScriptExecutorPath, "/tmp/" + TaskScriptExecutorFileName)
 	if err != nil {
 		return errors.Wrapf(err, CopyTaskScriptErrorMsg, d.Id, TaskScriptExecutorFileName)
 	}
@@ -94,21 +94,21 @@ func (d *DockerDriver) initiate(config helper.ContainerConfig) error {
 }
 
 func (d *DockerDriver) stop() error {
-	err := helper.StopContainer(&d.Cli, d.Id)
+	err := docker.StopContainer(&d.Cli, d.Id)
 	if err != nil {
 		return errors.Wrapf(err, StopContainerErrorMsg, d.Id)
 	}
-	err = helper.RemoveContainer(&d.Cli, d.Id)
+	err = docker.RemoveContainer(&d.Cli, d.Id)
 	if err != nil {
 		return errors.Wrapf(err, RemoveContainerErrorMsg, d.Id)
 	}
 	return err
 }
 
-func (d *DockerDriver) send(task storage.Task) error {
+func (d *DockerDriver) send(task *storage.Task) error {
 	taskScriptFileName := "task-id.ts"
 	rawCmdsStr := task.GetRawCommands()
-	err := helper.Write(&d.Cli, d.Id, rawCmdsStr, "/tmp/" + taskScriptFileName)
+	err := docker.Write(&d.Cli, d.Id, rawCmdsStr, "/tmp/" + taskScriptFileName)
 	if err != nil {
 		err = errors.Wrapf(err, SendTaskScriptFileErrorMsg, taskScriptFileName)
 	}
@@ -118,7 +118,7 @@ func (d *DockerDriver) send(task storage.Task) error {
 func (d *DockerDriver) run(taskId string) error {
 	taskScriptFilePath := "/tmp/task-id.ts"
 	cmd := fmt.Sprintf(RunTaskScriptCommandPattern, "/tmp/" + TaskScriptExecutorFileName, taskScriptFilePath)
-	err := helper.Exec(&d.Cli, d.Id, cmd)
+	err := docker.Exec(&d.Cli, d.Id, cmd)
 	if err != nil {
 		err = errors.Wrap(err, RunTaskScriptExecutorErrorMsg)
 	}
@@ -140,7 +140,7 @@ func (d *DockerDriver) track(task *storage.Task) error {
 
 func (d *DockerDriver) getExitCodes(taskId string) ([]int8, error) {
 	ecFilePath := "/tmp/task-id" + ".ts.ec"
-	dat, err := helper.Cat(&d.Cli, d.Id, ecFilePath)
+	dat, err := docker.Cat(&d.Cli, d.Id, ecFilePath)
 	if err != nil {
 		err = errors.Wrapf(err, GettingExitCodesErrorMsg, ecFilePath)
 		return nil, err
