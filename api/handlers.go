@@ -8,12 +8,10 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
-
-const VersionTag = "0.0.1"
-const VersionName = "Havana"
 
 type Version struct {
 	Tag  string `json:"Tag"`
@@ -246,7 +244,7 @@ func (a *HttpApi) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
+	write(w, http.StatusOK, Version{Tag: os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
 }
 
 func write(w http.ResponseWriter, statusCode int, i interface{}) {

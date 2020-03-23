@@ -1,24 +1,22 @@
 package storage
 
-import (
-	"testing"
-)
-
-var storage = NewDB("localhost", "5432", "postgres", "postgres", "postgres")
+import "testing"
 
 func TestSaveQueue(t *testing.T) {
-	storage.SetUp()
+	s := OpenDriver()
+
+	s.Setup()
 	var tasks []*Task
 	tasks = append(tasks, &Task{
-			JobID:    0,
-			State:    0,
-			Config:   nil,
-			Metadata: nil,
-			Commands: nil,
-		},
+		JobID:    0,
+		State:    0,
+		Config:   nil,
+		Metadata: nil,
+		Commands: nil,
+	},
 	)
 
-	err := storage.SaveJob(&Job{
+	err := s.SaveJob(&Job{
 		QueueID: 1,
 		Label:   "Some Label",
 		State:   0,
