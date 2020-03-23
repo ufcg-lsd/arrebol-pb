@@ -4,13 +4,15 @@ services:
   arrebol-db:
     image: postgres
     environment:
+      POSTGRES_USER: "arrebol-admin"
       POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "arrebol-db"
     networks:
       - arrebol-net
     ports:
       - "5432:5432"
     volumes:
-      - arrebol:/var/lib/postgresql/data
+      - arrebol-db:/var/lib/postgresql/data
   dba:
     image: dpage/pgadmin4
     environment:
@@ -21,22 +23,23 @@ services:
     ports:
       - 15432:80
 
-#  arrebol:
-#    image: ufcglsd/arrebol:golang
-#    env_file:
-#      - ./.env
-#    networks:
-#      - arrebol
-#    deploy:
-#      replicas: 1
-#      update_config:
-#        parallelism: 1
-#        delay: 10s
-#    ports:
-#      - "8080:8080"
+  arrebol:
+    image: emanueljoivo/arrebol:0.0.4
+    env_file:
+      - ../.env
+    networks:
+      - arrebol-net
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+    ports:
+      - "5000:5000"
 
 volumes:
-  arrebol: {}
+  arrebol-db: {}
 
 networks:
   arrebol-net:
+    driver: overlay
