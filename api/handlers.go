@@ -156,6 +156,24 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /hello/{name} hello Hello
+	//
+	// Returns a simple Hello message
+	// ---
+	// consumes:
+	// - text/plain
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: name
+	//   in: path
+	//   description: Name to be returned.
+	//   required: true
+	//   type: string
+	// responses:
+	//   '200':
+	//     description: The hello message
+	//     type: string
 	var jobSpec JobSpec
 	params := mux.Vars(r)
 
@@ -247,6 +265,11 @@ func (a *HttpApi) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
 
 func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
+}
+
+func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	http.ServeFile(w, r, "swagger.json")
 }
 
 func write(w http.ResponseWriter, statusCode int, i interface{}) {

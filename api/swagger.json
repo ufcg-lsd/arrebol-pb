@@ -1,0 +1,57 @@
+{
+  "consumes": [
+    "text/plain"
+  ],
+  "produces": [
+    "text/plain"
+  ],
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "The purpose of this application is to test go-swagger in a simple GET request.",
+    "title": "Testing go-swagger generation",
+    "contact": {
+      "name": "Daniel",
+      "email": "danielfs.ti@gmail.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "http://opensource.org/licenses/MIT"
+    },
+    "version": "0.0.1"
+  },
+  "host": "localhost:8080",
+  "paths": {
+    "/hello/{name}": {
+      "get": {
+        "description": "Returns a simple Hello message",
+        "consumes": [
+          "text/plain"
+        ],
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "hello"
+        ],
+        "operationId": "Hello",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Name to be returned.",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The hello message"
+          }
+        }
+      }
+    }
+  }
+}
