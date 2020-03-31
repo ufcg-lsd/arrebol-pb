@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -56,8 +58,13 @@ type ErrorResponse struct {
 	Status uint `json:"Status"`
 }
 
+// swagger:model jobSpec
 type JobSpec struct {
+	// label
+	// required: true
 	Label string     `json:"Label"`
+	// tasks
+	// required: true
 	Tasks []TaskSpec `json:"Tasks"`
 }
 
@@ -74,8 +81,27 @@ var (
 )
 
 func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation POST /v1/queues/ createQueue
+	//
+	// Creates a queue
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: body
+	//   in: body
+	//   description: The queue payload
+	//   required: true
+	//   schema:
+	//       "$ref": "#/definitions/jobSpec"
+	// responses:
+	//   '201':
+	//     description: The queue ID
+	//     schema:
+	//       "$ref": "#/definitions/jobSpec"
 	var queue storage.Queue
-
 	err := json.NewDecoder(r.Body).Decode(&queue)
 
 	if err != nil {
@@ -156,24 +182,6 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
-	// swagger:operation GET /hello/{name} hello Hello
-	//
-	// Returns a simple Hello message
-	// ---
-	// consumes:
-	// - text/plain
-	// produces:
-	// - text/plain
-	// parameters:
-	// - name: name
-	//   in: path
-	//   description: Name to be returned.
-	//   required: true
-	//   type: string
-	// responses:
-	//   '200':
-	//     description: The hello message
-	//     type: string
 	var jobSpec JobSpec
 	params := mux.Vars(r)
 
@@ -267,15 +275,33 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
 }
 
+
+func getConfiguration() map[string]interface{} {
+	// it must open the port and make all scripts executable
+	file, _ := os.Open("swagger.json")
+	defer file.Close()
+	configuration := make(map[string]interface{})
+	byteValue, _ := ioutil.ReadAll(file)
+	print(byteValue)
+	err := json.Unmarshal(byteValue, &configuration)
+	print(err)
+	print(configuration)
+
+	return configuration
+}
+
 func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
+	fmt.Print("Get swagger received")
+	//write(w, http.StatusOK, getConfiguration())
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
-	http.ServeFile(w, r, "swagger.json")
+	http.ServeFile(w, r, "/home/raoni/go/src/github.com/emanueljoivo/arrebol/api/swagger.json")
 }
 
 func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-
+	print(i)
 	if err := json.NewEncoder(w).Encode(i); err != nil {
 		log.Println(EncodeResErr)
 	}

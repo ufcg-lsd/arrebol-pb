@@ -1,0 +1,6 @@
+#!/bin/bash
+
+go get -u github.com/go-swagger/go-swagger/cmd/swagger
+swagger generate spec -o ./swagger.json
+#maybe the application should be running here
+docker run --rm -it -p 8081:8080 swaggerapi/swagger-ui

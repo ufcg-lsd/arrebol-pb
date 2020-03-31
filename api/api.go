@@ -1,18 +1,18 @@
-// Testing go-swagger generation
+// Arrebol api documentation
 //
-// The purpose of this application is to test go-swagger in a simple GET request.
+// The purpose of this application is to be a batch processing system.
 //
 //     Schemes: http
 //     Host: localhost:8080
 //     Version: 0.0.1
 //     License: MIT http://opensource.org/licenses/MIT
-//     Contact: Daniel<danielfs.ti@gmail.com>
+//     Contact:
 //
 //     Consumes:
-//     - text/plain
+//     - application/json
 //
 //     Produces:
-//     - text/plain
+//     - application/json
 //
 // swagger:meta
 package api
