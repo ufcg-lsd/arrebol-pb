@@ -9,13 +9,11 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
-
-const VersionTag = "0.0.1"
-const VersionName = "Havana"
 
 type Version struct {
 	Tag  string `json:"Tag"`
@@ -89,7 +87,8 @@ var (
 )
 
 func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
-	// swagger:operation POST /v1/queues/ createQueue
+	// swagger:operation P.
+  T /v1/queues/ createQueue
 	//
 	// Creates a queue
 	// ---
@@ -396,7 +395,8 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	//   '200':
 	//     description: The system version
 	//     type: string
-	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
+	write(w, http.StatusOK, Version{Tag: 
+                                  Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
 }
 
 func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {

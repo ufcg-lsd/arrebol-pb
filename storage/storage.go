@@ -12,12 +12,13 @@ type Storage struct {
 	driver *gorm.DB
 }
 
+const dbDialect string =  "postgres"
 var DB *Storage
 
-func NewDB(host string, port string, user string, dbname string, password string) *Storage {
-	dbAddr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+func New(host string, port string, user string, dbname string, password string) *Storage {
+	dbConfig := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		host, port, user, dbname, password)
-	driver, err := gorm.Open("postgres", dbAddr)
+	driver, err := gorm.Open(dbDialect, dbConfig)
 
 	if err != nil {
 		log.Fatalln(err.Error())
@@ -29,8 +30,6 @@ func NewDB(host string, port string, user string, dbname string, password string
 		log.Fatalln(err.Error())
 	}
 
-	// driver.LogMode(true)
-
 	DB = &Storage{
 		driver,
 	}
@@ -38,9 +37,9 @@ func NewDB(host string, port string, user string, dbname string, password string
 	return DB
 }
 
-func (s *Storage) SetUp() {
+func (s *Storage) Setup() {
 	s.CreateSchema()
-	CreateDefault(s)
+	createDefaults(s)
 }
 
 func (s *Storage) Driver() *gorm.DB {
@@ -105,7 +104,7 @@ func (s *Storage) RetrieveJobByQueue(jobID, queueId uint) (*Job, error) {
 	var job Job
 
 	err := s.driver.First(&queue, queueId).Related(&queue.Jobs).Error
-	if queue.contains(jobID) {
+	if queue.QueueHasJob(jobID) {
 		err := s.driver.First(&job, jobID).Related(&job.Tasks).Error
 		s.fillTasks(job.Tasks)
 		return &job, err
@@ -135,6 +134,7 @@ func (s *Storage) fillTasks(tasks []*Task) {
 		s.fillTask(task)
 	}
 }
+
 func (s *Storage) fillTask(task *Task) {
 	db := s.driver.First(&task, task.ID)
 	db.Related(&task.Commands)
@@ -153,7 +153,7 @@ func (s *Storage) GetDefaultQueue() (*Queue, error) {
 	return &queue, nil
 }
 
-func CreateDefault(storage *Storage) {
+func createDefaults(storage *Storage) {
 	q := &Queue{
 		Name: "Default",
 	}

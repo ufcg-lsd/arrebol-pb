@@ -19,4 +19,6 @@ require (
 	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
 	golang.org/x/tools v0.0.0-20200331192549-ac2e956812a8 // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
+	github.com/pkg/errors v0.8.1
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 )
