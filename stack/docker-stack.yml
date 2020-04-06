@@ -35,7 +35,18 @@ services:
         parallelism: 1
         delay: 10s
     ports:
-      - "5000:5000"
+      - "5000:5001"
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    environment:
+      - SWAGGER_JSON=/api/swagger.json
+    networks:
+      - arrebol-net
+    volumes:
+      - ../api:/api
+    ports:
+      - 80:8080
 
 volumes:
   arrebol-db: {}

@@ -87,8 +87,7 @@ var (
 )
 
 func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
-	// swagger:operation P.
-  T /v1/queues/ createQueue
+	// swagger:operation POST /v1/queues/ createQueue
 	//
 	// Creates a queue
 	// ---
@@ -396,7 +395,7 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	//     description: The system version
 	//     type: string
 	write(w, http.StatusOK, Version{Tag: 
-                                  Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
+                                  os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
 }
 
 func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
