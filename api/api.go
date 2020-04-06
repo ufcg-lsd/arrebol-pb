@@ -1,3 +1,20 @@
+// Arrebol api documentation
+//
+// The purpose of this application is to be a batch processing system.
+//
+//     Schemes: http
+//     Host: localhost:8080
+//     Version: 0.0.1
+//     License: MIT http://opensource.org/licenses/MIT
+//     Contact:
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+// swagger:meta
 package api
 
 import (
@@ -51,6 +68,7 @@ func (a *HttpApi) bootRouter() *mux.Router {
 	router.HandleFunc("/v1/queues/{qid}/nodes", a.AddNode).Methods(http.MethodPost)
 	router.HandleFunc("/v1/queues/{qid}/nodes", a.RetrieveNodes).Methods(http.MethodGet)
 	router.HandleFunc("/v1/queues/{qid}/nodes/{nid}", a.RetrieveNode).Methods(http.MethodGet)
+	router.HandleFunc("/swagger.json", a.Swagger).Methods(http.MethodGet)
 
 	return router
 }

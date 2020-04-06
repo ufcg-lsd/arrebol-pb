@@ -71,6 +71,7 @@ func (s *Storage) CreateSchema() {
 	s.ConfigureSchema()
 }
 
+// swagger:model Queue
 type Queue struct {
 	gorm.Model
 	Name  string          `json:"Name"`
