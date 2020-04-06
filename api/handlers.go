@@ -8,7 +8,9 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -401,13 +403,16 @@ func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("Get swagger received")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
-	http.ServeFile(w, r, "/home/raoni/go/src/github.com/emanueljoivo/arrebol/api/swagger.json")
+	gopath_cmd := exec.Command("/bin/sh", "-c", "echo $GOPATH")
+	gopath, _ := gopath_cmd.Output()
+	gopath_str := strings.TrimSpace(string(gopath))
+
+	http.ServeFile(w, r, gopath_str+"/src/github.com/emanueljoivo/arrebol/api/swagger.json")
 }
 
 func write(w http.ResponseWriter, statusCode int, i interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	print(i)
 	if err := json.NewEncoder(w).Encode(i); err != nil {
 		log.Println(EncodeResErr)
 	}
