@@ -1,6 +1,9 @@
 #!/bin/bash
 
+# This is script downloads all dependencies needed and run the swaggerui in a docker container.
+# Brew must be available in the system
+brew tap go-swagger/go-swagger
+brew install go-swagger
 go get -u github.com/go-swagger/go-swagger/cmd/swagger
-swagger generate spec -o ./swagger.json
-#maybe the application should be running here
+swagger generate spec -o ./swagger.json -m
 docker run --rm -it -p 8081:8080 swaggerapi/swagger-ui

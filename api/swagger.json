@@ -21,6 +21,27 @@
   "host": "localhost:8080",
   "paths": {
     "/v1/queues/": {
+      "get": {
+        "description": "Retrieve current queues",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "getQueues",
+        "responses": {
+          "200": {
+            "description": "The current queues",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/QueueResponse"
+              }
+            }
+          }
+        }
+      },
       "post": {
         "description": "Creates a queue",
         "consumes": [
@@ -37,7 +58,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/jobSpec"
+              "$ref": "#/definitions/Queue"
             }
           }
         ],
@@ -45,8 +66,158 @@
           "201": {
             "description": "The queue ID",
             "schema": {
+              "$ref": "#/definitions/GenericIdResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/queues/{queue_id}": {
+      "get": {
+        "description": "Retrieve queue by its id",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "getQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The queue id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The queue",
+            "schema": {
+              "$ref": "#/definitions/QueueResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/queues/{queue_id}/jobs": {
+      "get": {
+        "description": "Retrieve jobs by queue",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "retrieveJobsByQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The queue id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The jobs",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Job"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Create a job",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "createJob",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The queue id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The job payload",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
               "$ref": "#/definitions/jobSpec"
             }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The job id",
+            "schema": {
+              "$ref": "#/definitions/GenericIdResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/queues/{queue_id}/jobs/{job_id}": {
+      "get": {
+        "description": "Retrieve job by queue",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "retrieveJobByQueue",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The queue id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The job id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The jobs",
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          }
+        }
+      }
+    },
+    "/v1/version": {
+      "get": {
+        "description": "Retrieve the system version",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/plain"
+        ],
+        "operationId": "getVersion",
+        "responses": {
+          "200": {
+            "description": "The system version"
           }
         }
       }
@@ -71,6 +242,48 @@
         }
       },
       "x-go-package": "github.com/docker/docker/api/types/registry"
+    },
+    "Command": {
+      "type": "object",
+      "properties": {
+        "Commands": {
+          "type": "integer",
+          "format": "int8",
+          "x-go-name": "ExitCode"
+        },
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "RawCommand": {
+          "type": "string"
+        },
+        "State": {
+          "$ref": "#/definitions/CommandState"
+        },
+        "TaskID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "CommandState": {
+      "type": "integer",
+      "format": "uint8",
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
     },
     "ContainerCreateCreatedBody": {
       "description": "ContainerCreateCreatedBody container create created body",
@@ -141,6 +354,17 @@
         }
       },
       "x-go-package": "github.com/docker/docker/api/types"
+    },
+    "GenericIdResponse": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "description": "Id\nrequired",
+          "type": "string",
+          "x-go-name": "Id"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/api"
     },
     "IdResponse": {
       "description": "IDResponse Response to an API call that returns just an Id",
@@ -232,6 +456,72 @@
         }
       },
       "x-go-package": "github.com/docker/docker/api/types"
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Label": {
+          "type": "string"
+        },
+        "QueueID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "State": {
+          "$ref": "#/definitions/JobState"
+        },
+        "Tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Task"
+          }
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "JobState": {
+      "type": "integer",
+      "format": "uint8",
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "Model": {
+      "description": "Model base model definition, including fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, which could be embedded in your models\ntype User struct {\ngorm.Model\n}",
+      "type": "object",
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-go-package": "github.com/jinzhu/gorm"
     },
     "Plugin": {
       "description": "Plugin A plugin for the Engine API",
@@ -690,6 +980,109 @@
       },
       "x-go-package": "github.com/docker/docker/api/types"
     },
+    "Queue": {
+      "type": "object",
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Job"
+          }
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResourceNode"
+          }
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "QueueResponse": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Nodes": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "PendingTasks": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "RunningTasks": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Workers": {
+          "type": "integer",
+          "format": "uint64"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/api"
+    },
+    "ResourceNode": {
+      "type": "object",
+      "properties": {
+        "Address": {
+          "type": "string"
+        },
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "QueueID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "State": {
+          "$ref": "#/definitions/ResourceState"
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "ResourceState": {
+      "type": "integer",
+      "format": "uint8",
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
     "ServiceUpdateResponse": {
       "description": "ServiceUpdateResponse service update response",
       "type": "object",
@@ -703,6 +1096,117 @@
         }
       },
       "x-go-package": "github.com/docker/docker/api/types"
+    },
+    "Task": {
+      "type": "object",
+      "properties": {
+        "Commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Command"
+          }
+        },
+        "Config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TaskConfig"
+          }
+        },
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "JobID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TaskMetadata"
+          }
+        },
+        "State": {
+          "$ref": "#/definitions/TaskState"
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "TaskConfig": {
+      "type": "object",
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Key": {
+          "type": "string"
+        },
+        "TaskID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "Value": {
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
+    },
+    "TaskMetadata": {
+      "type": "object",
+      "properties": {
+        "CreatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "DeletedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "Key": {
+          "type": "string"
+        },
+        "TaskID": {
+          "type": "integer",
+          "format": "uint64"
+        },
+        "UpdatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "Value": {
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
     },
     "TaskSpec": {
       "type": "object",
@@ -730,6 +1234,11 @@
         }
       },
       "x-go-package": "github.com/emanueljoivo/arrebol/api"
+    },
+    "TaskState": {
+      "type": "integer",
+      "format": "uint8",
+      "x-go-package": "github.com/emanueljoivo/arrebol/storage"
     },
     "Volume": {
       "description": "Volume volume",

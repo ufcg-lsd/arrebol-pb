@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 )
@@ -22,8 +20,9 @@ type Version struct {
 	Name string `json:"Name"`
 }
 
+// swagger:model QueueResponse
 type QueueResponse struct {
-	ID           uint `json:"ID"`
+	ID           uint   `json:"ID"`
 	Name         string `json:"Name"`
 	PendingTasks uint   `json:"PendingTasks"`
 	RunningTasks uint   `json:"RunningTasks"`
@@ -32,37 +31,37 @@ type QueueResponse struct {
 }
 
 type JobResponse struct {
-	ID        uint     `json:"ID"`
-	Label     string     `json:"Label"`
-	State     string     `json:"State"`
-	CreatedAt time.Time  `json:"CreatedAt"`
-	UpdatedAt time.Time  `json:"UpdatedAt"`
+	ID        uint            `json:"ID"`
+	Label     string          `json:"Label"`
+	State     string          `json:"State"`
+	CreatedAt time.Time       `json:"CreatedAt"`
+	UpdatedAt time.Time       `json:"UpdatedAt"`
 	Tasks     []*TaskResponse `json:"Tasks"`
 }
 
 type TaskResponse struct {
-	ID        uint     `json:"ID"`
-	State    string      `json:"State"`
-	Commands     []*CommandResponse `json:"Commands"`
+	ID       uint               `json:"ID"`
+	State    string             `json:"State"`
+	Commands []*CommandResponse `json:"Commands"`
 }
 
 type CommandResponse struct {
-	ID 			uint 	`json:"ID"`
-	State    	string	`json:"State"`
-	RawCommand 	string	`json:"RawCommand"`
-	ExitCode 	int8	`json:"ExitCode"`
+	ID         uint   `json:"ID"`
+	State      string `json:"State"`
+	RawCommand string `json:"RawCommand"`
+	ExitCode   int8   `json:"ExitCode"`
 }
 
 type ErrorResponse struct {
 	Message string `json:"Message"`
-	Status uint `json:"Status"`
+	Status  uint   `json:"Status"`
 }
 
 // swagger:model jobSpec
 type JobSpec struct {
 	// label
 	// required: true
-	Label string     `json:"Label"`
+	Label string `json:"Label"`
 	// tasks
 	// required: true
 	Tasks []TaskSpec `json:"Tasks"`
@@ -73,6 +72,13 @@ type TaskSpec struct {
 	Config   map[string]string `json:"Config"`
 	Commands []string          `json:"Commands"`
 	Metadata map[string]string `json:"Metadata"`
+}
+
+// swagger:model GenericIdResponse
+type GenericIdResponse struct {
+	// Id
+	// required
+	Id string `json:"ID"`
 }
 
 var (
@@ -95,12 +101,12 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	//   description: The queue payload
 	//   required: true
 	//   schema:
-	//       "$ref": "#/definitions/jobSpec"
+	//       "$ref": "#/definitions/Queue"
 	// responses:
 	//   '201':
 	//     description: The queue ID
 	//     schema:
-	//       "$ref": "#/definitions/jobSpec"
+	//       "$ref": "#/definitions/GenericIdResponse"
 	var queue storage.Queue
 	err := json.NewDecoder(r.Body).Decode(&queue)
 
@@ -130,6 +136,25 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /v1/queues/{queue_id} getQueue
+	//
+	// Retrieve queue by its id
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: The queue id
+	//   required: true
+	//   type: string
+	// responses:
+	//   '201':
+	//     description: The queue
+	//     schema:
+	//       "$ref": "#/definitions/QueueResponse"
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
@@ -160,6 +185,21 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /v1/queues/ getQueues
+	//
+	// Retrieve current queues
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// responses:
+	//   '200':
+	//     description: The current queues
+	//     schema:
+	//       type: array
+	//       items:
+	//         "$ref": "#/definitions/QueueResponse"
 	var response []*QueueResponse
 
 	queues, err := a.storage.RetrieveQueues()
@@ -182,6 +222,31 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation POST /v1/queues/{queue_id}/jobs createJob
+	//
+	// Create a job
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: The queue id
+	//   required: true
+	//   type: string
+	// - name: body
+	//   in: body
+	//   description: The job payload
+	//   required: true
+	//   schema:
+	//       "$ref": "#/definitions/jobSpec"
+	// responses:
+	//   '201':
+	//     description: The job id
+	//     schema:
+	//       "$ref": "#/definitions/GenericIdResponse"
 	var jobSpec JobSpec
 	params := mux.Vars(r)
 
@@ -222,6 +287,27 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /v1/queues/{queue_id}/jobs retrieveJobsByQueue
+	//
+	// Retrieve jobs by queue
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: The queue id
+	//   required: true
+	//   type: string
+	// responses:
+	//   '200':
+	//     description: The jobs
+	//     schema:
+	//       type: array
+	//       items:
+	//         "$ref": "#/definitions/Job"
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
@@ -240,6 +326,30 @@ func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /v1/queues/{queue_id}/jobs/{job_id} retrieveJobByQueue
+	//
+	// Retrieve job by queue
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: The queue id
+	//   required: true
+	//   type: string
+	// - name: id
+	//   in: path
+	//   description: The job id
+	//   required: true
+	//   type: string
+	// responses:
+	//   '200':
+	//     description: The jobs
+	//     schema:
+	//        "$ref": "#/definitions/Job"
 	params := mux.Vars(r)
 
 	queueIDStr := params["qid"]
@@ -251,7 +361,7 @@ func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		write(w, http.StatusNotFound, ErrorResponse{
-			Message:  err.Error(),
+			Message: err.Error(),
 			Status:  http.StatusNotFound,
 		})
 	} else {
@@ -272,27 +382,23 @@ func (a *HttpApi) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
+	// swagger:operation GET /v1/version getVersion
+	//
+	// Retrieve the system version
+	// ---
+	// consumes:
+	// - application/json
+	// produces:
+	// - text/plain
+	// responses:
+	//   '200':
+	//     description: The system version
+	//     type: string
 	write(w, http.StatusOK, Version{Tag: VersionTag, Name: VersionName})
-}
-
-
-func getConfiguration() map[string]interface{} {
-	// it must open the port and make all scripts executable
-	file, _ := os.Open("swagger.json")
-	defer file.Close()
-	configuration := make(map[string]interface{})
-	byteValue, _ := ioutil.ReadAll(file)
-	print(byteValue)
-	err := json.Unmarshal(byteValue, &configuration)
-	print(err)
-	print(configuration)
-
-	return configuration
 }
 
 func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("Get swagger received")
-	//write(w, http.StatusOK, getConfiguration())
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	http.ServeFile(w, r, "/home/raoni/go/src/github.com/emanueljoivo/arrebol/api/swagger.json")

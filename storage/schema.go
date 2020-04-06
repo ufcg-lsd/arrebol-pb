@@ -24,6 +24,7 @@ func (s *Storage) CreateSchema() {
 	s.Driver().Model(&Job{}).AddForeignKey("queue_id", "queues(id)", "CASCADE", "CASCADE")
 }
 
+// swagger:model Queue
 type Queue struct {
 	gorm.Model
 	Name  string          `json:"Name"`
