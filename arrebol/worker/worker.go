@@ -1,4 +1,4 @@
-package worker
+package main
 
 import (
 	"bytes"
@@ -12,9 +12,12 @@ import (
 )
 
 type WorkerSpec struct {
-	vcpu           float32
-	ram            float32
-	image          string
+	vcpu  float32
+	ram   float32
+	image string
+}
+
+type Task struct {
 }
 
 type PBWorker struct {
@@ -31,8 +34,43 @@ func (w *PBWorker) reportTask() {
 
 }
 
-func (w *PBWorker) getTask() {
+func (w *PBWorker) getTask() *Task {
+	if w.queueId == "" {
+		log.Println("The queue id has not been set yet")
+		return nil
+	}
 
+	if w.token == "" {
+		log.Println("The token has not been set yet")
+		return nil
+	}
+
+	url := w.serverEndPoint + "/workers/" + w.id + "/queues/" + w.queueId
+	requestBody, err := json.Marshal(&PBWorker{spec: &WorkerSpec{ram: w.spec.ram,
+		image: w.spec.image, vcpu: w.spec.vcpu}, address: w.address, id: w.id})
+
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodGet, url, bytes.NewBuffer(requestBody))
+	req.Header.Set("arrebol-worker-token", w.token)
+
+	if err != nil {
+		// handle error
+		log.Fatal(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		// handle error
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	reqBody, err := ioutil.ReadAll(resp.Body)
+	var task Task
+	json.Unmarshal(reqBody, &task)
+
+	return &task
 }
 
 func (w *PBWorker) subscribe() {
@@ -63,11 +101,11 @@ func (w *PBWorker) subscribe() {
 	w.queueId = parsedBody["queue_id"]
 }
 
-func (w *PBWorker) execTask() {
+func (w *PBWorker) execTask(task *Task) {
 
 }
 
-func loadWorker() PBWorker {
+func LoadWorker() PBWorker {
 	path_cmd := exec.Command("/bin/sh", "-c", "echo $GOPATH")
 	path, _ := path_cmd.Output()
 	path_str := strings.TrimSpace(string(path))

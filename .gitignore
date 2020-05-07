@@ -3,3 +3,4 @@
 .env
 api/swagger.*
 go.sum
+arrebol/worker/worker-conf.json
