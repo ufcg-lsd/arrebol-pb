@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 )
 
@@ -41,6 +42,16 @@ func isTokenValid(token string) bool{
 }
 
 func main() {
+	switch len(os.Args) {
+	case 2:
+		workerImpl := os.Args[1]
+		println(workerImpl)
+	default:
+		defaultWorker()
+	}
+}
+
+func defaultWorker() {
 	worker := LoadWorker()
 	setup(worker.serverEndPoint, worker.id)
 	worker.subscribe()
@@ -49,6 +60,6 @@ func main() {
 			worker.subscribe()
 		}
 		task := worker.getTask()
-		go worker.execTask(task)
+		worker.execTask(task)
 	}
 }
