@@ -1,6 +1,6 @@
 #!/bin/sh
 conf_file_path="$GOPATH/src/github.com/ufcg-lsd/arrebol-pb/arrebol/worker/worker-conf.json"
-sudo apt-get install jq
+apt-get install jq
 
 worker_id=`jq .id $conf_file_path`
 
