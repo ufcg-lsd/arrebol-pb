@@ -36,14 +36,19 @@ func setup(serverEndPoint string, workerId string) {
 	defer resp.Body.Close()
 }
 
+func isTokenValid(token string) bool{
+	return true
+}
+
 func main() {
 	worker := LoadWorker()
 	setup(worker.serverEndPoint, worker.id)
 	worker.subscribe()
-	task := worker.getTask()
-	joinChan := make(chan interface{})
-
-	go worker.execTask(task)
-
-	<-joinChan
+	for {
+		if !isTokenValid(worker.token) {
+			worker.subscribe()
+		}
+		task := worker.getTask()
+		go worker.execTask(task)
+	}
 }

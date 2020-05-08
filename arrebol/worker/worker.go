@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type WorkerSpec struct {
@@ -17,7 +18,20 @@ type WorkerSpec struct {
 	image string
 }
 
+type TaskState uint8
+
+const (
+	TaskPending TaskState = iota
+	TaskRunning
+	TaskFinished
+	TaskFailed
+)
+
 type Task struct {
+	commands       []string
+	reportInterval int64
+	state          TaskState
+	progress       int
 }
 
 type PBWorker struct {
@@ -25,12 +39,43 @@ type PBWorker struct {
 	spec           *WorkerSpec
 	address        string
 	token          string
-	reportInterval int
 	id             string
 	queueId        string
 }
 
-func (w *PBWorker) reportTask() {
+func (w *PBWorker) reportTask(task *Task, endingChannel chan int) {
+	startTime := time.Now().Unix()
+	for {
+		select {
+		case <-endingChannel:
+			return
+		default:
+			currentTime := time.Now().Unix()
+			if currentTime-startTime < task.reportInterval {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			url := w.serverEndPoint + "/workers/" + w.id + "/queues/" + w.queueId + "/tasks"
+			requestBody, err := json.Marshal(task)
+
+			client := &http.Client{}
+			req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(requestBody))
+			req.Header.Set("arrebol-worker-token", w.token)
+
+			if err != nil {
+				// handle error
+				log.Fatal(err)
+			}
+
+			_, err = client.Do(req)
+			if err != nil {
+				// handle error
+				log.Fatal(err)
+			}
+
+			startTime = currentTime
+		}
+	}
 
 }
 
@@ -102,7 +147,21 @@ func (w *PBWorker) subscribe() {
 }
 
 func (w *PBWorker) execTask(task *Task) {
+	endingChannel := make(chan int, 1)
+	go w.reportTask(task, endingChannel)
+	taskSize := len(task.commands)
+	for i, command := range task.commands {
+		exec.Command("/bin/bash", "-c", getPrjPath()+"arrebol/worker/bin/task-command-executor.sh -c " + command)
+		task.progress = (i * 100) / taskSize
+	}
+	endingChannel <- 1
+}
 
+func getPrjPath() string{
+	path_cmd := exec.Command("/bin/sh", "-c", "echo $GOPATH")
+	path, _ := path_cmd.Output()
+	path_str := strings.TrimSpace(string(path))
+	return path_str + "/src/github.com/ufcg-lsd/arrebol-pb/"
 }
 
 func LoadWorker() PBWorker {
