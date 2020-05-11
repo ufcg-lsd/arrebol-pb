@@ -239,7 +239,7 @@ func LoadWorker() PBWorker {
 
 	log.Println("Starting reading configuration process")
 	// it must open the port and make all scripts executable
-	file, err := os.Open(path_str + "/src/github.com/ufcg-lsd/arrebol-pb/arrebol/worker/worker-conf.json.example")
+	file, err := os.Open(path_str + "/src/github.com/ufcg-lsd/arrebol-pb/arrebol/worker/worker-conf.json")
 	defer file.Close()
 
 	if err != nil {

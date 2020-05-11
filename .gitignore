@@ -4,3 +4,4 @@
 api/swagger.*
 go.sum
 arrebol/worker/worker-conf.json
+arrebol/worker/deploy/ansible/deploy.conf

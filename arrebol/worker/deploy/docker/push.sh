@@ -1,0 +1,1 @@
+sudo docker push ufcg-lsd/arrebol:"${1-latest}"

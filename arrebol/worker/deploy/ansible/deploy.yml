@@ -1,0 +1,15 @@
+---
+- hosts: worker-machine
+  vars:
+    run: bash -x arrebol/worker/deploy/deploy-worker.sh
+    path: "/home/ubuntu/go/src/github.com/ufcg-lsd/arrebol-pb"
+  tasks:
+    - name: Copy project
+      copy: src="../../" dest="{{ path }}/arrebol/"
+
+    - name: Copy deps files
+      copy: src="../../../../go.mod ../../../../go.sum" dest="{{ path }}/arrebol/worker"
+
+    - name: Run
+      shell: "{{ run }}"
+      become: yes
