@@ -6,11 +6,20 @@ import (
 )
 
 type WorkerApi struct {
+	server  *http.Server
 }
 
 func New() *WorkerApi {
 	return &WorkerApi{
+		}
+}
+
+func (a *WorkerApi) Start(port string) error {
+	a.server= &http.Server{
+		Addr:    ":" + port,
+		Handler: a.bootRouter(),
 	}
+	return a.server.ListenAndServe()
 }
 
 func (a *WorkerApi) bootRouter() *mux.Router {

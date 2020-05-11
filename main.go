@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
-	"github.com/ufcg-lsd/arrebol/arrebol"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/ufcg-lsd/arrebol/api"
-	"github.com/ufcg-lsd/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol-pb/api/worker"
+	"github.com/ufcg-lsd/arrebol-pb/api"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"github.com/joho/godotenv"
 )
 
@@ -55,6 +55,13 @@ func main() {
 	}()
 
 	if err := a.Start(*apiPort); err != nil {
+		log.Fatal(err.Error())
+	}
+
+	workerApi := worker.New()
+	err = workerApi.Start("8000")
+
+	if err != nil {
 		log.Fatal(err.Error())
 	}
 }

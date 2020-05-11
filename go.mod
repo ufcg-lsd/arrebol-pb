@@ -1,4 +1,4 @@
-module github.com/ufcg-lsd/arrebol
+module github.com/ufcg-lsd/arrebol-pb
 
 go 1.14
 

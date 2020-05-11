@@ -1,8 +1,8 @@
 package arrebol
 
 import (
-	"github.com/ufcg-lsd/arrebol/arrebol/driver"
-	"github.com/ufcg-lsd/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/driver"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"github.com/hashicorp/go-uuid"
 )
 

@@ -2,7 +2,7 @@ package storage
 
 import (
 	"fmt"
-	"github.com/ufcg-lsd/arrebol/arrebol/errors"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/errors"
 	"github.com/jinzhu/gorm"
 )
 
