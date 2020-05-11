@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
-	"github.com/emanueljoivo/arrebol/arrebol"
+	"github.com/ufcg-lsd/arrebol/arrebol"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/emanueljoivo/arrebol/api"
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol/api"
+	"github.com/ufcg-lsd/arrebol/storage"
 	"github.com/joho/godotenv"
 )
 

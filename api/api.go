@@ -19,8 +19,8 @@ package api
 
 import (
 	"context"
-	"github.com/emanueljoivo/arrebol/arrebol"
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol/arrebol"
+	"github.com/ufcg-lsd/arrebol/storage"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"

@@ -1,7 +1,7 @@
 package driver
 
 import (
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol/storage"
 	"log"
 	"os/exec"
 	"strings"
