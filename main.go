@@ -62,8 +62,10 @@ func main() {
 }
 
 func startWorkerApi() {
+	const WorkerApiPort = "8000"
+
 	workerApi := worker.New()
-	err := workerApi.Start("8000")
+	err := workerApi.Start(WorkerApiPort)
 
 	if err != nil {
 		log.Fatal(err.Error())

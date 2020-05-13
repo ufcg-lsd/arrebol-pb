@@ -1,8 +1,6 @@
 package worker
 
 import (
-	"crypto/rsa"
-	"encoding/json"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -37,40 +35,21 @@ func (a *WorkerApi) bootRouter() *mux.Router {
 }
 
 func (a *WorkerApi) AddPublicKey(w http.ResponseWriter, r *http.Request) {
-	log.Print(mux.Vars(r))
-	body := make(map[string]*rsa.PublicKey)
-	json.NewDecoder(r.Body).Decode(&body)
-	for k := range body {
-		log.Println(k)
-		log.Println(body[k])
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 }
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
-	log.Print(mux.Vars(r))
-	var body map[string]string
-	json.NewDecoder(r.Body).Decode(&body)
-	println(body["data"])
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 }
 
 func (a *WorkerApi) GetTask(w http.ResponseWriter, r *http.Request) {
-	log.Print(mux.Vars(r))
-	var body map[string]string
-	json.NewDecoder(r.Body).Decode(&body)
-	println(body)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 }
 
 func (a *WorkerApi) ReportTask(w http.ResponseWriter, r *http.Request) {
-	log.Print(mux.Vars(r))
-	var body map[string]string
-	json.NewDecoder(r.Body).Decode(&body)
-	println(body)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 }
