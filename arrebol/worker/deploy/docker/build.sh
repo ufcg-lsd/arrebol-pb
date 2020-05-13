@@ -1,1 +1,0 @@
-sudo docker build --no-cache -f Dockerfile -t ufcg-lsd/arrebol:"${1-latest}" .
