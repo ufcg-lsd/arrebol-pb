@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"

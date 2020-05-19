@@ -1,7 +1,7 @@
 package arrebol
 
 import (
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"sync"
 )

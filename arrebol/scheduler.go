@@ -2,9 +2,9 @@ package arrebol
 
 import (
 	"fmt"
-	"github.com/emanueljoivo/arrebol/arrebol/driver"
-	"github.com/emanueljoivo/arrebol/docker"
-	"github.com/emanueljoivo/arrebol/storage"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/driver"
+	"github.com/ufcg-lsd/arrebol-pb/docker"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"os"
 	"strconv"
