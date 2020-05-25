@@ -24,7 +24,7 @@ services:
       - 80:80
 
   server:
-    image: emanueljoivo/arrebol:0.0.1
+    image: emanueljoivo/arrebol-pb:0.0.1
     env_file:
       - ../.env
     networks:
