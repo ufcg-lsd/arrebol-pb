@@ -1,30 +1,30 @@
 version: "3.7"
 
 services:
-  arrebol-db:
-    image: postgres
+  db:
+    image: postgres:13
     environment:
       POSTGRES_USER: "arrebol-admin"
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: "arrebol-db"
     networks:
-      - arrebol-net
+      - net
     ports:
       - "5432:5432"
     volumes:
-      - arrebol-db:/var/lib/postgresql/data
+      db:/var/lib/postgresql/data
   dba:
     image: dpage/pgadmin4
     environment:
-      PGADMIN_DEFAULT_EMAIL: "emanueljbm@lsd.ufcg.edu.br"
+      PGADMIN_DEFAULT_EMAIL: "arrebol@lsd.ufcg.edu.br"
       PGADMIN_DEFAULT_PASSWORD: "postgres"
     networks:
-      - arrebol-net
+      net
     ports:
-      - 15432:80
+      - 80:80
 
-  arrebol:
-    image: emanueljoivo/arrebol:0.0.4
+  server:
+    image: emanueljoivo/arrebol-pb:0.0.1
     env_file:
       - ../.env
     networks:
@@ -35,22 +35,22 @@ services:
         parallelism: 1
         delay: 10s
     ports:
-      - "5000:5001"
+      - "5000:5000"
 
   swagger-ui:
     image: swaggerapi/swagger-ui
     environment:
       - SWAGGER_JSON=/api/swagger.json
     networks:
-      - arrebol-net
+      - net
     volumes:
       - ../api:/api
     ports:
       - 80:8080
 
 volumes:
-  arrebol-db: {}
+  db: {}
 
 networks:
-  arrebol-net:
+  net:
     driver: overlay
