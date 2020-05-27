@@ -111,7 +111,7 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&queue)
 
 	if err != nil {
-		write(w, http.StatusBadRequest, ErrorResponse{
+		Write(w, http.StatusBadRequest, ErrorResponse{
 			Message: "Maybe the body has a wrong shape",
 			Status:  http.StatusBadRequest,
 		})
@@ -120,7 +120,7 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	err = a.storage.SaveQueue(&queue)
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, ErrorResponse{
+		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: "Error while trying to save the new queue",
 			Status:  http.StatusInternalServerError,
 		})
@@ -161,7 +161,7 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	queueID, err := strconv.Atoi(queueIDStr)
 
 	if err != nil {
-		write(w, http.StatusBadRequest, ErrorResponse{
+		Write(w, http.StatusBadRequest, ErrorResponse{
 			Message: "Malformed request",
 			Status:  http.StatusBadRequest,
 		})
@@ -170,7 +170,7 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 		queue, err := a.storage.RetrieveQueue(uint(queueID))
 
 		if err != nil {
-			write(w, http.StatusNotFound, ErrorResponse{
+			Write(w, http.StatusNotFound, ErrorResponse{
 				Message: fmt.Sprintf("Queue with ID %d not found", queueID),
 				Status:  http.StatusNotFound,
 			})
@@ -179,7 +179,7 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
 			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
 
-			write(w, http.StatusOK, &response)
+			Write(w, http.StatusOK, &response)
 		}
 	}
 }
@@ -205,7 +205,7 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	queues, err := a.storage.RetrieveQueues()
 
 	if err != nil {
-		write(w, http.StatusNotFound, ErrorResponse{
+		Write(w, http.StatusNotFound, ErrorResponse{
 			Message: fmt.Sprintf("%v", err),
 			Status:  http.StatusNotFound,
 		})
@@ -217,7 +217,7 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
 			response = append(response, curQueue)
 		}
-		write(w, http.StatusOK, response)
+		Write(w, http.StatusOK, response)
 	}
 }
 
@@ -264,7 +264,7 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 	queue, err := a.storage.RetrieveQueue(uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, ErrorResponse{
+		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
@@ -272,7 +272,7 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 		queue.Jobs = append(queue.Jobs, job)
 		err = a.storage.SaveQueue(queue)
 		if err != nil {
-			write(w, http.StatusInternalServerError, ErrorResponse{
+			Write(w, http.StatusInternalServerError, ErrorResponse{
 				Message: err.Error(),
 				Status:  http.StatusInternalServerError,
 			})
@@ -316,12 +316,12 @@ func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 	jobs, err := a.storage.RetrieveJobsByQueueID(uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, ErrorResponse{
+		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
 	} else {
-		write(w, http.StatusOK, newJobResponses(jobs))
+		Write(w, http.StatusOK, newJobResponses(jobs))
 	}
 }
 
@@ -360,25 +360,25 @@ func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 	job, err := a.storage.RetrieveJobByQueue(uint(jobID), uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusNotFound, ErrorResponse{
+		Write(w, http.StatusNotFound, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusNotFound,
 		})
 	} else {
-		write(w, http.StatusOK, newJobResponse(job))
+		Write(w, http.StatusOK, newJobResponse(job))
 	}
 }
 
 func (a *HttpApi) AddNode(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+	Write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *HttpApi) RetrieveNode(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+	Write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *HttpApi) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+	Write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
@@ -394,7 +394,7 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	//   '200':
 	//     description: The system version
 	//     type: string
-	write(w, http.StatusOK, Version{Tag: 
+	Write(w, http.StatusOK, Version{Tag:
                                   os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
 }
 
@@ -409,7 +409,7 @@ func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, gopath_str+"/src/github.com/emanueljoivo/arrebol/api/swagger.json")
 }
 
-func write(w http.ResponseWriter, statusCode int, i interface{}) {
+func Write(w http.ResponseWriter, statusCode int, i interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(i); err != nil {
