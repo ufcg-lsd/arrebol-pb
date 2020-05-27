@@ -39,11 +39,6 @@ func (a *WorkerApi) AddPublicKey(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(201)
 }
 
-func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-}
-
 func (a *WorkerApi) GetTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
