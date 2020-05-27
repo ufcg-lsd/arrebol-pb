@@ -48,6 +48,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
 		})
+		return
 	}
 
 	var workerSpec WorkerSpec
@@ -62,21 +63,23 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 
 func (a *WorkerApi) verifySignature(r *http.Request) (err error) {
 	signature := r.Header.Get(SIGNATURE_HEADER)
+	body, _ := r.GetBody()
 
 	if signature == "" {
 		return errors.New("request signature was not found")
 	}
 
 	var workerSpec WorkerSpec
-	if err = json.NewDecoder(r.Body).Decode(&workerSpec); err != nil {
+	if err = json.NewDecoder(body).Decode(&workerSpec); err != nil {
 		return errors.New("Maybe the body has a wrong shape")
 	}
 
 	var publicKey *rsa.PublicKey
 	var message []byte
 
-	if publicKey, err = crypto.GetPublicKey(workerSpec.ID); err != nil {return}
-	if message, err = ioutil.ReadAll(r.Body); err != nil {return}
+	body, _ = r.GetBody()
+	if publicKey, err = crypto.GetWorkerPublicKey(workerSpec.ID); err != nil {return}
+	if message, err = ioutil.ReadAll(body); err != nil {return}
 
 	return crypto.Verify(publicKey, message, []byte(signature))
 }
