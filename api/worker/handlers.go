@@ -85,10 +85,15 @@ func (a *WorkerApi) verifySignature(r *http.Request) (err error) {
 }
 
 func (a *WorkerApi) selectQueue(workerSpec WorkerSpec) string {
-	return ""
+	return workerSpec.QueueId
 }
 
 func (a *WorkerApi) generateToken(queueId string, spec WorkerSpec) Token {
-	return Token{}
+	return Token{
+		WorkerId: spec.ID,
+		QueueId:  queueId,
+		VCPU:     spec.VCPU,
+		RAM:      spec.RAM,
+	}
 }
 
