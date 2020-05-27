@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	KeysPathKey = "KEYS_PATH"
+	KEYS_PATH = "KEYS_PATH"
 )
 
 // Sign generates a digital signature of the message passed in.
@@ -33,34 +33,56 @@ func Verify(pub *rsa.PublicKey, message, signature []byte) (err error) {
 	return rsa.VerifyPSS(pub, crypto.SHA256, d, signature, nil)
 }
 
-func GetPublicKey(workerID string) (*rsa.PublicKey, error) {
+func GetWorkerPublicKey(workerID string) (*rsa.PublicKey, error) {
 	keyName := workerID + ".pub"
-	decodedKey, err := decodeKey(keyName)
+	keyPath := os.Getenv(KEYS_PATH) + "/" + keyName
+	return GetPublicKey(keyPath)
+}
+
+func GetPublicKey(keyPath string) (*rsa.PublicKey, error) {
+	decodedKey, err := decodeRSAKey(keyPath)
 	if err != nil {
 		return nil, err
 	}
 
 	rsaKey, err := x509.ParsePKCS1PublicKey(decodedKey.Bytes)
 	if err != nil {
-		return nil, errors.New("Error on parsing public key " + err.Error())
+		return nil, errors.New("Unable to parse RSA public key: " + err.Error())
 	}
 
 	return rsaKey, nil
 }
 
-func decodeKey(keyName string) (*pem.Block, error) {
-	keysPath := os.Getenv(KeysPathKey)
-	keyContent, err := ioutil.ReadFile(keysPath + "/" + keyName)
+func GetPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
+	privPem, err := decodeRSAKey(keyPath)
+	if err != nil {
+		return nil, err
+	}
+	rsaKey, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)
+	if err != nil {
+		return nil, errors.New("Unable to parse RSA public key: " + err.Error())
+	}
+
+	return rsaKey, nil
+}
+
+
+func decodeRSAKey(keyPath string) (*pem.Block, error) {
+	keyContent, err := ioutil.ReadFile(keyPath)
 
 	if err != nil {
-		return nil, errors.New("The key [" + keyName + " ] was not found")
+		return nil, errors.New("The key [" + keyPath + " ] was not found")
 	}
 
-	decodedKey, rest := pem.Decode(keyContent)
+	keyPem, rest := pem.Decode(keyContent)
 
 	if len(rest) > 0 {
-		return decodedKey, errors.New("Error on decoding key; the rest is not empty.")
+		return keyPem, errors.New("Error on decoding key; the rest is not empty.")
 	}
 
-	return decodedKey, nil
+	if keyPem.Type != "RSA PRIVATE KEY" && keyPem.Type != "RSA PUBLIC KEY" {
+		return keyPem, errors.New("RSA private key is of the wrong type")
+	}
+
+	return keyPem, nil
 }
