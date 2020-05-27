@@ -29,16 +29,16 @@ type Token struct {
 }
 
 func (t Token) getRaw() string {
-	const separator string = "."
-	var r strings.Builder
-	r.WriteString(t.WorkerId)
-	r.WriteString(separator)
-	r.WriteString(t.QueueId)
-	r.WriteString(separator)
-	r.WriteString(fmt.Sprintf("%f", t.VCPU))
-	r.WriteString(separator)
-	r.WriteString(fmt.Sprint(t.RAM))
-	return r.String()
+	const separator string = "#"
+	builder := strings.Builder{}
+	builder.WriteString(t.WorkerId)
+	builder.WriteString(separator)
+	builder.WriteString(t.QueueId)
+	builder.WriteString(separator)
+	builder.WriteString(fmt.Sprintf("%.2f", t.VCPU))
+	builder.WriteString(separator)
+	builder.WriteString(fmt.Sprint(t.RAM))
+	return builder.String()
 }
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +77,7 @@ func (a *WorkerApi) verifySignature(r *http.Request) (err error) {
 
 	if publicKey, err = crypto.GetPublicKey(workerSpec.ID); err != nil {return}
 	if message, err = ioutil.ReadAll(r.Body); err != nil {return}
+
 	return crypto.Verify(publicKey, message, []byte(signature))
 }
 
