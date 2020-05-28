@@ -2,8 +2,8 @@ package storage
 
 import (
 	"fmt"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/errors"
 	"github.com/jinzhu/gorm"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 )
 
 func (s *Storage) DropTablesIfExist() *gorm.DB {

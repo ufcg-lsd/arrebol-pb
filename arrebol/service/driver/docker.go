@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/errors"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/docker"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"

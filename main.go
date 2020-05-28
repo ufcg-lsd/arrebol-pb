@@ -5,7 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/api/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"os"
@@ -37,7 +37,7 @@ func main() {
 	s.Setup()
 	defer s.Driver().Close()
 
-	var jobDispatcher = arrebol.NewDispatcher(s)
+	var jobDispatcher = service.NewDispatcher(s)
 	go jobDispatcher.Start()
 
 	a := api.New(s, jobDispatcher)
