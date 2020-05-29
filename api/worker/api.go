@@ -19,7 +19,7 @@ type WorkerApi struct {
 func New(storage *storage.Storage) *WorkerApi {
 	return &WorkerApi{
 		storage: storage,
-		auth : *auth.NewDefaultAuth(),
+		auth : *auth.NewJWTAuth(),
 		manager: *manager.NewManager(),
 	}
 }
