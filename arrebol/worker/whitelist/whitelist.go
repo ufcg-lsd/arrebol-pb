@@ -2,6 +2,7 @@ package whitelist
 
 import (
 	"bufio"
+	"log"
 	"os"
 )
 
@@ -10,7 +11,7 @@ const (
 )
 
 type WhiteList interface {
-	Contains(id string) (bool, error)
+	Contains(id string) (bool)
 }
 
 type FileWhiteList struct {
@@ -21,15 +22,15 @@ func NewFileWhiteList() WhiteList {
 	return &FileWhiteList{sourceFile: os.Getenv(WhiteListPath)}
 }
 
-func (l *FileWhiteList) Contains(workerId string) (bool, error) {
+func (l *FileWhiteList) Contains(workerId string) (bool) {
 	ids, err := l.loadSourceFile()
 	if err != nil {
-		return false, err
+		log.Fatal(err)
 	}
 	if contains(ids, workerId) {
-		return true, nil
+		return true
 	}
-	return false, nil
+	return false
 }
 
 func (l *FileWhiteList) loadSourceFile() ([]string, error) {
