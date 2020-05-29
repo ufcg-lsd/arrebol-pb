@@ -2,17 +2,23 @@ package worker
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/manager"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"net/http"
 )
 
 type WorkerApi struct {
 	server  *http.Server
+	workerManager *manager.Manager
+	storage *storage.Storage
 }
 
-func New() *WorkerApi {
+func New(storage *storage.Storage) *WorkerApi {
 	return &WorkerApi{
-		}
+		storage:       storage,
+		workerManager: manager.NewManager(),
+	}
 }
 
 func (a *WorkerApi) Start(port string) error {
