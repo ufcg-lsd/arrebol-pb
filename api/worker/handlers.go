@@ -1,48 +1,49 @@
 package worker
 
 import (
-	"crypto/rsa"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/ufcg-lsd/arrebol-pb/api"
-	"github.com/ufcg-lsd/arrebol-pb/crypto"
-	"io/ioutil"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/manager"
 	"net/http"
-	"strings"
 )
 
-const SIGNATURE_HEADER string = "SIGNATURE";
+const SignatureHeader string = "SIGNATURE";
 
-type WorkerSpec struct {
-	ID      string  `json:"ID"`
-	VCPU    float32 `json:"vCPU"`
-	RAM     uint32  `json:"RAM"` //Megabytes
-	QueueId string  `json:"QueueId, omitempty"`
-}
-
-type Token struct {
-	WorkerId string `json:"WorkerId"`
-	QueueId string  `json:"QueueId"`
-	VCPU	float32 `json:"vCPU"`
-	RAM     uint32  `json:"RAM"`
-}
-
-func (t Token) getRaw() string {
-	const separator string = "#"
-	builder := strings.Builder{}
-	builder.WriteString(t.WorkerId)
-	builder.WriteString(separator)
-	builder.WriteString(t.QueueId)
-	builder.WriteString(separator)
-	builder.WriteString(fmt.Sprintf("%.2f", t.VCPU))
-	builder.WriteString(separator)
-	builder.WriteString(fmt.Sprint(t.RAM))
-	return builder.String()
+func newAuthorization(signature string, message []byte) manager.Authorization {
+	authorization := manager.Authorization{
+		[]byte(signature),
+		message,
+	}
+	return authorization
 }
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
-	err := a.verifySignature(r)
+	signature := r.Header.Get(SignatureHeader)
+	//data, err := ioutil.ReadAll(r.Body)
+
+	if signature == "" {
+		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
+			Message: "signature header was not found",
+			Status:  http.StatusBadRequest,
+		})
+		return
+	}
+
+	var worker worker.Worker
+	//bytes.NewReader(data)
+	if err := json.NewDecoder(r.Body).Decode(&worker); err != nil {
+		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
+			Message: "Maybe the body has a wrong shape",
+			Status:  http.StatusBadRequest,
+		})
+		return
+	}
+	data, err := json.Marshal(worker)
+
+	auth := newAuthorization(signature, data)
+	token, err := a.workerManager.Join(auth, worker)
+
 	if err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
@@ -51,49 +52,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var workerSpec WorkerSpec
-	_ = json.NewDecoder(r.Body).Decode(&workerSpec)
-	queueId := a.selectQueue(workerSpec)
-	token := a.generateToken(queueId, workerSpec)
-	api.Write(w, http.StatusOK, struct {
-		QueueId string `json:"QueueId"`
-		Token   string `json:"Token"`
-	}{queueId, token.getRaw()})
-}
-
-func (a *WorkerApi) verifySignature(r *http.Request) (err error) {
-	signature := r.Header.Get(SIGNATURE_HEADER)
-	body, _ := r.GetBody()
-
-	if signature == "" {
-		return errors.New("request signature was not found")
-	}
-
-	var workerSpec WorkerSpec
-	if err = json.NewDecoder(body).Decode(&workerSpec); err != nil {
-		return errors.New("Maybe the body has a wrong shape")
-	}
-
-	var publicKey *rsa.PublicKey
-	var message []byte
-
-	body, _ = r.GetBody()
-	if publicKey, err = crypto.GetWorkerPublicKey(workerSpec.ID); err != nil {return}
-	if message, err = ioutil.ReadAll(body); err != nil {return}
-
-	return crypto.Verify(publicKey, message, []byte(signature))
-}
-
-func (a *WorkerApi) selectQueue(workerSpec WorkerSpec) string {
-	return workerSpec.QueueId
-}
-
-func (a *WorkerApi) generateToken(queueId string, spec WorkerSpec) Token {
-	return Token{
-		WorkerId: spec.ID,
-		QueueId:  queueId,
-		VCPU:     spec.VCPU,
-		RAM:      spec.RAM,
-	}
+	w.Header().Set("Token", token.String())
+	api.Write(w, http.StatusOK, nil)
 }
 
