@@ -10,8 +10,13 @@ import (
 const SignatureHeader string = "SIGNATURE";
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
-	signature := r.Header.Get(SignatureHeader)
-	//data, err := ioutil.ReadAll(r.Body)
+	var (
+		signature string
+		worker worker.Worker
+		queueId string
+	)
+
+	signature = r.Header.Get(SignatureHeader)
 
 	if signature == "" {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
@@ -21,8 +26,6 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var worker worker.Worker
-	//bytes.NewReader(data)
 	if err := json.NewDecoder(r.Body).Decode(&worker); err != nil {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
 			Message: "Maybe the body has a wrong shape",
@@ -31,7 +34,18 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := a.workerManager.Join(signature, worker)
+	data, err := json.Marshal(w)
+	if err := a.auth.VerifySignature(worker.ID, data, []byte(signature)); err != nil {
+		// TODO return
+	}
+
+	err = a.auth.VerifySignature(worker.ID, data, []byte(signature))
+	if err != nil {
+		//TODO return
+	}
+
+	queueId, err = a.manager.Join(worker)
+	worker.QueueId = queueId
 
 	if err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
@@ -41,7 +55,17 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Token", token.String())
+	token, err := a.auth.CreateToken(&worker)
+
+	if err != nil {
+		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
+			Message: err.Error(),
+			Status:  http.StatusUnauthorized,
+		})
+		return
+	}
+
+	w.Header().Set("Token", (*token).String())
 	api.Write(w, http.StatusOK, nil)
 }
 
