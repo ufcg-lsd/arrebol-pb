@@ -54,17 +54,17 @@ func main() {
 		}
 	}()
 
-	go startWorkerApi()
+	go startWorkerApi(s)
 
 	if err := a.Start(*apiPort); err != nil {
 		log.Fatal(err.Error())
 	}
 }
 
-func startWorkerApi() {
+func startWorkerApi(storage *storage.Storage) {
 	const WorkerApiPort = "8000"
 
-	workerApi := worker.New()
+	workerApi := worker.New(storage)
 	err := workerApi.Start(WorkerApiPort)
 
 	if err != nil {
