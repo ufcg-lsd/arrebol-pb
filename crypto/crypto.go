@@ -9,11 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"io/ioutil"
-	"os"
-)
-
-const (
-	KEYS_PATH = "KEYS_PATH"
 )
 
 // Sign generates a digital signature of the message passed in.
@@ -31,12 +26,6 @@ func Verify(pub *rsa.PublicKey, message, signature []byte) (err error) {
 	hash.Write(message)
 	d := hash.Sum(nil)
 	return rsa.VerifyPSS(pub, crypto.SHA256, d, signature, nil)
-}
-
-func GetWorkerPublicKey(workerID string) (*rsa.PublicKey, error) {
-	keyName := workerID + ".pub"
-	keyPath := os.Getenv(KEYS_PATH) + "/" + keyName
-	return GetPublicKey(keyPath)
 }
 
 func GetPublicKey(keyPath string) (*rsa.PublicKey, error) {
