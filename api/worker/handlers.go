@@ -4,19 +4,10 @@ import (
 	"encoding/json"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/manager"
 	"net/http"
 )
 
 const SignatureHeader string = "SIGNATURE";
-
-func newAuthorization(signature string, message []byte) manager.Authorization {
-	authorization := manager.Authorization{
-		[]byte(signature),
-		message,
-	}
-	return authorization
-}
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	signature := r.Header.Get(SignatureHeader)
@@ -39,10 +30,8 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	data, err := json.Marshal(worker)
 
-	auth := newAuthorization(signature, data)
-	token, err := a.workerManager.Join(auth, worker)
+	token, err := a.workerManager.Join(signature, worker)
 
 	if err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
