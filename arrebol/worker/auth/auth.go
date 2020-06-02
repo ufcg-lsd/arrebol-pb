@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/whitelist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/token"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/whitelist"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 )
 
