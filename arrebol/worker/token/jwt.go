@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	ArrebolPrvKeyPath = "ARREBOL_PRV_KEY_PATH"
-	ArrebolPubKeyPath = "ARREBOL_PUB_KEY_PATH"
+	ArrebolPrivKeyPath = "ARREBOL_PRIV_KEY_PATH"
+	ArrebolPubKeyPath  = "ARREBOL_PUB_KEY_PATH"
 )
 
 type JWToken struct {
@@ -40,7 +40,7 @@ func NewJWToken(worker *worker.Worker) (*JWToken, error){
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
-	privateKey, err := crypto.GetPrivateKey(os.Getenv(ArrebolPrvKeyPath))
+	privateKey, err := crypto.GetPrivateKey(os.Getenv(ArrebolPrivKeyPath))
 	if err != nil {
 		return nil, err
 	}
