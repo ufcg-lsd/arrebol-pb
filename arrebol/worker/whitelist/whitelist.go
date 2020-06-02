@@ -11,29 +11,31 @@ const (
 )
 
 type WhiteList interface {
-	Contains(id string) (bool)
+	Contains(id string) bool
 }
 
 type FileWhiteList struct {
-	sourceFile string
+	list []string
 }
 
 func NewFileWhiteList() WhiteList {
-	return &FileWhiteList{sourceFile: os.Getenv(WhiteListPath)}
-}
-
-func (l *FileWhiteList) Contains(workerId string) (bool) {
-	ids, err := l.loadSourceFile()
+	list, err := loadSourceFile()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if contains(ids, workerId) {
-		return true
+	return &FileWhiteList{list: list}
+}
+
+func (l *FileWhiteList) Contains(workerId string) bool {
+	for _, current := range l.list {
+		if current == workerId {
+			return true
+		}
 	}
 	return false
 }
 
-func (l *FileWhiteList) loadSourceFile() ([]string, error) {
+func loadSourceFile() ([]string, error) {
 	file, err := os.Open(os.Getenv(WhiteListPath))
 	if err != nil {
 		return nil, err
@@ -46,15 +48,6 @@ func (l *FileWhiteList) loadSourceFile() ([]string, error) {
 		ids = append(ids, scanner.Text())
 	}
 	return ids, scanner.Err()
-}
-
-func contains(ss []string, s string) bool {
-	for _, a := range ss {
-		if a == s {
-			return true
-		}
-	}
-	return false
 }
 
 
