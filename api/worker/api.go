@@ -12,7 +12,7 @@ import (
 type WorkerApi struct {
 	server  *http.Server
 	manager manager.Manager
-	auth auth.Auth
+	auth auth.Authenticator
 	storage *storage.Storage
 }
 

@@ -30,7 +30,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = a.auth.Validate([]byte(signature), worker); err != nil {
+	if err = a.auth.Authenticate([]byte(signature), worker); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
@@ -47,7 +47,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	worker.QueueId = queueId
-	token, err := a.auth.Authenticate(worker)
+	token, err := a.auth.NewToken(worker)
 
 	if err != nil {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
