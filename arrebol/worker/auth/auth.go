@@ -17,15 +17,12 @@ type Authenticator interface {
 }
 
 type JWTAuthenticator struct {
-	workerKeyReader key.Reader
 	whitelist       whitelist.WhiteList
 }
 
 func NewJWTAuth() *Authenticator {
-	reader := key.NewLocalReader()
 	whitelist := whitelist.NewFileWhiteList()
 	var auth Authenticator = &JWTAuthenticator{
-		workerKeyReader: reader,
 		whitelist: whitelist,
 	}
 	return &auth
@@ -36,7 +33,7 @@ func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Work
 	if err != nil {
 		return err
 	}
-	publicKey, err := auth.workerKeyReader.GetPublicKey(worker.ID)
+	publicKey, err := key.GetPublicKey(worker.ID)
 	if err != nil {
 		return err
 	}
