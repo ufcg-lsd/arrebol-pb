@@ -21,7 +21,7 @@ type JWTAuthenticator struct {
 }
 
 func NewJWTAuth() *Authenticator {
-	whitelist := whitelist.NewFileWhiteList()
+	whitelist := whitelist.NewWhiteList()
 	var auth Authenticator = &JWTAuthenticator{
 		whitelist: whitelist,
 	}

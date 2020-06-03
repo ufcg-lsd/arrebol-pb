@@ -10,23 +10,19 @@ const (
 	WhiteListPath = "WHITE_LIST_PATH"
 )
 
-type WhiteList interface {
-	Contains(id string) bool
-}
-
-type FileWhiteList struct {
+type WhiteList struct {
 	list []string
 }
 
-func NewFileWhiteList() WhiteList {
+func NewWhiteList() WhiteList {
 	list, err := loadSourceFile()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &FileWhiteList{list: list}
+	return WhiteList{list: list}
 }
 
-func (l *FileWhiteList) Contains(workerId string) bool {
+func (l *WhiteList) Contains(workerId string) bool {
 	for _, current := range l.list {
 		if current == workerId {
 			return true
