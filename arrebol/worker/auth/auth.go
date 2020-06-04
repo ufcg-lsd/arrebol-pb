@@ -11,9 +11,8 @@ import (
 )
 
 type Authenticator interface {
-	Authenticate(signature []byte, worker *worker.Worker) error
+	Authenticate(signature []byte, worker *worker.Worker) (*token.Token, error)
 	Authorize(token *token.Token) error
-	NewToken(worker *worker.Worker) (*token.Token, error)
 }
 
 type JWTAuthenticator struct {
@@ -28,26 +27,29 @@ func NewJWTAuth() *Authenticator {
 	return &auth
 }
 
-func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Worker) error {
+func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Worker) (*token.Token, error) {
 	data, err := json.Marshal(worker)
+	var token *token.Token
 	if err != nil {
-		return err
+		return token, err
 	}
 	publicKey, err := key.GetPublicKey(worker.ID)
 	if err != nil {
-		return err
+		return token, err
 	}
 	err = crypto.Verify(publicKey, data, signature)
 	if err != nil {
-		return err
+		return token, err
 	}
-	if contains := auth.whitelist.Contains(worker.ID); !contains {
-		return errors.New("The worker [" + worker.ID + "] does not have permission")
+	if contains := auth.whitelist.Contains(worker.ID); contains {
+		token, err = auth.newToken(worker)
+		return token, err
+	} else {
+		return  token, errors.New("The worker [" + worker.ID + "] is not in the whitelist")
 	}
-	return nil
 }
 
-func (auth *JWTAuthenticator) NewToken(worker *worker.Worker) (*token.Token, error) {
+func (auth *JWTAuthenticator) newToken(worker *worker.Worker) (*token.Token, error) {
 	var t token.Token
 	var err error
 

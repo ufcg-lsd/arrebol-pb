@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"net/http"
 )
 
@@ -30,7 +31,8 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = a.auth.Authenticate([]byte(signature), worker); err != nil {
+	var tempToken *token.Token
+	if tempToken, err = a.auth.Authenticate([]byte(signature), worker); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
@@ -46,8 +48,8 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	worker.QueueId = queueId
-	token, err := a.auth.NewToken(worker)
+
+	token, err := (*tempToken).SetPayload("QueueId", queueId)
 
 	if err != nil {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
@@ -57,7 +59,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Token", (*token).String())
+	w.Header().Set("Token", token.String())
 	api.Write(w, http.StatusOK, nil)
 }
 
