@@ -1,16 +1,12 @@
 package token
 
 import (
-	//...
-	// import the jwt-go library
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
-	"log"
 	"os"
 	"time"
-
-	//...
 )
 
 const (
@@ -18,11 +14,7 @@ const (
 	ArrebolPubKeyPath  = "ARREBOL_PUB_KEY_PATH"
 )
 
-type JWToken struct {
-	raw string
-	QueueId string
-	WorkerId string
-}
+type JWToken string
 
 type Claims struct {
 	QueueId string `json:"QueueId"`
@@ -30,8 +22,8 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func NewJWToken(worker *worker.Worker) (*JWToken, error){
-	expirationTime := time.Now().Add(10 * time.Minute)
+func NewJWToken(worker *worker.Worker) (JWToken, error){
+	expirationTime := time.Now().Add(1 * time.Second)
 	claims := &Claims{
 		QueueId:        worker.QueueId,
 		WorkerId:       worker.ID,
@@ -40,41 +32,72 @@ func NewJWToken(worker *worker.Worker) (*JWToken, error){
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
-	privateKey, err := crypto.GetPrivateKey(os.Getenv(ArrebolPrivKeyPath))
+	signedToken, err := signToken(token)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	tokenStr, err := token.SignedString(privateKey)
-	if err != nil {
-		return &JWToken{}, err
-	}
-	return &JWToken{
-		raw:      tokenStr,
-		QueueId:  worker.QueueId,
-		WorkerId: worker.ID,
-	}, nil
+	return JWToken(signedToken), nil
 }
 
-func Parse(tokenString string) (*JWToken, error) {
+func signToken(token *jwt.Token) (string, error) {
+	privateKey, err := crypto.GetPrivateKey(os.Getenv(ArrebolPrivKeyPath))
+	if err != nil {
+		return "", err
+	}
+	return token.SignedString(privateKey)
+}
+
+func Parse(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return crypto.GetPublicKey(os.Getenv(ArrebolPubKeyPath))
 	})
 	if err != nil {
 		return nil, err
 	}
-	log.Println(token)
-	return nil, nil
+	return token, nil
 }
 
-func (t *JWToken) String() string {
-	return t.raw
+func (t JWToken) String() string {
+	return string(t)
 }
 
-func (*JWToken) Expired() bool {
+func (t JWToken) Expired() bool {
+	_, err := Parse(t.String())
+	v, _ := err.(*jwt.ValidationError)
+
+	if v.Errors == jwt.ValidationErrorExpired {
+		return true
+	}
+	if err != nil {
+		panic(err)
+	}
 	return false
 }
 
-func (*JWToken) GetPayload(key string) string {
-	return ""
+func (t JWToken) GetPayload(key string) (interface{}, error) {
+	token, err := Parse(t.String())
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims[key], nil
+	} else {
+		return nil, errors.New("Error while set payload from jwtoken")
+	}
+}
+
+func (t JWToken) SetPayload(key string, value interface{}) (Token, error) {
+	token, err := Parse(t.String())
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		claims[key] = value
+		token.Claims = claims
+		tokenStr, err := signToken(token)
+		return JWToken(tokenStr), err
+	} else {
+		panic("Error while set payload from jwtoken")
+	}
 }
 
