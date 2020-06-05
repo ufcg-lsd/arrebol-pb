@@ -17,8 +17,7 @@ type TokenResponse struct {
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var err error
-	signatureEncoded := r.Header.Get(SignatureHeader)
-	signature, _ := base64.StdEncoding.DecodeString(signatureEncoded)
+	signature := r.Header.Get(SignatureHeader)
 
 
 	if string(signature) == "" {
@@ -39,7 +38,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var tempToken *token.Token
-	if tempToken, err = a.auth.Authenticate(signature, worker); err != nil {
+	if tempToken, err = a.auth.Authenticate([]byte(signature), worker); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
