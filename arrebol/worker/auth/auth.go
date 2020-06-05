@@ -33,7 +33,7 @@ func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Work
 	if err != nil {
 		return token, err
 	}
-	publicKey, err := key.GetPublicKey(worker.WorkerID)
+	publicKey, err := key.GetPublicKey(worker.ID)
 	if err != nil {
 		return token, err
 	}
@@ -41,11 +41,11 @@ func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Work
 	if err != nil {
 		return token, err
 	}
-	if contains := auth.whitelist.Contains(worker.WorkerID); contains {
+	if contains := auth.whitelist.Contains(worker.ID); contains {
 		token, err = auth.newToken(worker)
 		return token, err
 	} else {
-		return  token, errors.New("The worker [" + worker.WorkerID + "] is not in the whitelist")
+		return  token, errors.New("The worker [" + worker.ID + "] is not in the whitelist")
 	}
 }
 
