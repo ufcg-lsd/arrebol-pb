@@ -49,7 +49,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := (*tempToken).SetPayload("QueueId", queueId)
+	token, err := (*tempToken).SetPayloadField("QueueId", queueId)
 
 	if err != nil {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{

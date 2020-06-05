@@ -74,7 +74,7 @@ func (t JWToken) Expired() bool {
 	return false
 }
 
-func (t JWToken) GetPayload(key string) (interface{}, error) {
+func (t JWToken) GetPayloadField(key string) (interface{}, error) {
 	token, err := Parse(t.String())
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (t JWToken) GetPayload(key string) (interface{}, error) {
 	}
 }
 
-func (t JWToken) SetPayload(key string, value interface{}) (Token, error) {
+func (t JWToken) SetPayloadField(key string, value interface{}) (Token, error) {
 	token, err := Parse(t.String())
 	if err != nil {
 		return nil, err
