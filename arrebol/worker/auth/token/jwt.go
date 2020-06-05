@@ -69,9 +69,6 @@ func (t JWToken) Expired() bool {
 	if v.Errors == jwt.ValidationErrorExpired {
 		return true
 	}
-	if err != nil {
-		panic(err)
-	}
 	return false
 }
 
