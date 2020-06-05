@@ -12,6 +12,7 @@ import (
 const (
 	ArrebolPrivKeyPath = "ARREBOL_PRIV_KEY_PATH"
 	ArrebolPubKeyPath  = "ARREBOL_PUB_KEY_PATH"
+	ExpirationTime = 10 * time.Minute
 )
 
 type JWToken string
@@ -23,7 +24,7 @@ type Claims struct {
 }
 
 func NewJWToken(worker *worker.Worker) (JWToken, error){
-	expirationTime := time.Now().Add(1 * time.Second)
+	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &Claims{
 		QueueId:        worker.QueueId,
 		WorkerId:       worker.ID,
