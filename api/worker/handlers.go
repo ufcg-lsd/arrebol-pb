@@ -11,6 +11,10 @@ import (
 
 const SignatureHeader string = "SIGNATURE";
 
+type TokenResponse struct {
+	ArrebolWorkerToken string
+}
+
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var err error
 	signatureEncoded := r.Header.Get(SignatureHeader)
@@ -71,7 +75,6 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Token", token.String())
-	api.Write(w, http.StatusOK, nil)
+	api.Write(w, http.StatusOK, TokenResponse{token.String()})
 }
 
