@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
@@ -55,7 +54,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := (*tempToken).SetPayloadField("QueueID", queueId)
+	token, err := (*tempToken).SetPayloadField("QueueId", queueId)
 	queue, err := a.storage.RetrieveQueue(queueId)
 	queue.Workers = append(queue.Workers, worker)
 	err = a.storage.SaveQueue(queue)
