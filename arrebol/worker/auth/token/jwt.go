@@ -18,7 +18,7 @@ const (
 type JWToken string
 
 type Claims struct {
-	QueueId string `json:"QueueId"`
+	QueueId uint `json:"QueueID"`
 	WorkerId string `json:"WorkerId"`
 	jwt.StandardClaims
 }
@@ -26,8 +26,8 @@ type Claims struct {
 func NewJWToken(worker *worker.Worker) (JWToken, error){
 	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &Claims{
-		QueueId:        worker.QueueId,
-		WorkerId:       worker.ID,
+		QueueId:        worker.QueueID,
+		WorkerId:       worker.WorkerID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},

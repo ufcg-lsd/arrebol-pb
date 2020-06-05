@@ -11,12 +11,12 @@ func NewManager() *Manager {
 	return &Manager{}
 }
 
-func (m *Manager) Join(w worker.Worker) (string, error) {
+func (m *Manager) Join(w worker.Worker) (uint, error) {
 	queueId := m.selectQueue(w)
-	w.QueueId = queueId
+	w.QueueID = queueId
 	return queueId, nil
 }
 
-func (m *Manager) selectQueue(w worker.Worker) string {
-	return "default"
+func (m *Manager) selectQueue(w worker.Worker) uint {
+	return 1
 }

@@ -177,7 +177,7 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 		} else {
 			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
 			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(queue.Workers)))
 
 			Write(w, http.StatusOK, &response)
 		}
@@ -214,7 +214,8 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 		for _, queue := range queues {
 			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
 			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+			workers, _ := a.storage.RetrieveWorkersByQueueID(queue.ID)
+			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(workers)))
 			response = append(response, curQueue)
 		}
 		Write(w, http.StatusOK, response)
@@ -463,13 +464,14 @@ func newCommandResponse(commands []*storage.Command) []*CommandResponse {
 	return cr
 }
 
-func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint) *QueueResponse {
+func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint, workers uint) *QueueResponse {
 	return &QueueResponse{
 		ID:           queue.ID,
 		Name:         queue.Name,
 		PendingTasks: pendingTasks,
 		RunningTasks: runningTasks,
 		Nodes:        uint(len(queue.Nodes)),
+		Workers: workers,
 	}
 }
 
