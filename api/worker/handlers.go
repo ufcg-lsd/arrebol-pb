@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
@@ -12,9 +13,11 @@ const SignatureHeader string = "SIGNATURE";
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var err error
-	signature := r.Header.Get(SignatureHeader)
+	signatureEncoded := r.Header.Get(SignatureHeader)
+	signature, _ := base64.StdEncoding.DecodeString(signatureEncoded)
 
-	if signature == "" {
+
+	if string(signature) == "" {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
 			Message: "signature header was not found",
 			Status:  http.StatusBadRequest,
@@ -32,7 +35,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var tempToken *token.Token
-	if tempToken, err = a.auth.Authenticate([]byte(signature), worker); err != nil {
+	if tempToken, err = a.auth.Authenticate(signature, worker); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
