@@ -3,24 +3,24 @@ package worker
 import (
 	"github.com/gorilla/mux"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/manager"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/scheduler"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"net/http"
 )
 
 type WorkerApi struct {
-	server  *http.Server
-	manager manager.Manager
-	auth auth.Authenticator
-	storage *storage.Storage
+	server    *http.Server
+	scheduler scheduler.Scheduler
+	auth      auth.Authenticator
+	storage   *storage.Storage
 }
 
 func New(storage *storage.Storage) *WorkerApi {
 	return &WorkerApi{
-		storage: storage,
-		auth : *auth.NewAuth(),
-		manager: *manager.NewManager(),
+		storage:   storage,
+		auth :     *auth.NewAuth(),
+		scheduler: *scheduler.NewScheduler(),
 	}
 }
 
