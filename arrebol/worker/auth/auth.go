@@ -10,24 +10,19 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 )
 
-type Authenticator interface {
-	Authenticate(signature []byte, worker *worker.Worker) (*token.Token, error)
-	Authorize(token *token.Token) error
-}
-
-type JWTAuthenticator struct {
+type Authenticator struct {
 	whitelist       whitelist.WhiteList
 }
 
 func NewJWTAuth() *Authenticator {
 	whitelist := whitelist.NewWhiteList()
-	var auth Authenticator = &JWTAuthenticator{
+	var auth = Authenticator{
 		whitelist: whitelist,
 	}
 	return &auth
 }
 
-func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Worker) (*token.Token, error) {
+func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker) (*token.Token, error) {
 	data, err := json.Marshal(worker)
 	var token *token.Token
 	if err != nil {
@@ -49,17 +44,17 @@ func (auth *JWTAuthenticator) Authenticate(signature []byte, worker *worker.Work
 	}
 }
 
-func (auth *JWTAuthenticator) newToken(worker *worker.Worker) (*token.Token, error) {
+func (auth *Authenticator) newToken(worker *worker.Worker) (*token.Token, error) {
 	var t token.Token
 	var err error
 
-	t, err = token.NewJWToken(worker)
+	t, err = token.NewToken(worker)
 	if err != nil {
 		return nil, err
 	}
 	return &t, nil
 }
 
-func (auth *JWTAuthenticator) Authorize(token *token.Token) error {
+func (auth *Authenticator) Authorize(token *token.Token) error {
 	panic("implement me")
 }

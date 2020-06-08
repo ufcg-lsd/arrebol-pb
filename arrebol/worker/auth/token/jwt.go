@@ -15,7 +15,7 @@ const (
 	ExpirationTime = 10 * time.Minute
 )
 
-type JWToken string
+type Token string
 
 type Claims struct {
 	QueueId uint `json:"QueueId"`
@@ -23,7 +23,7 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func NewJWToken(worker *worker.Worker) (JWToken, error){
+func NewToken(worker *worker.Worker) (Token, error){
 	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &Claims{
 		QueueId:        worker.QueueID,
@@ -37,7 +37,7 @@ func NewJWToken(worker *worker.Worker) (JWToken, error){
 	if err != nil {
 		return "", err
 	}
-	return JWToken(signedToken), nil
+	return Token(signedToken), nil
 }
 
 func signToken(token *jwt.Token) (string, error) {
@@ -58,11 +58,11 @@ func Parse(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-func (t JWToken) String() string {
+func (t Token) String() string {
 	return string(t)
 }
 
-func (t JWToken) Expired() bool {
+func (t Token) Expired() bool {
 	_, err := Parse(t.String())
 	v, _ := err.(*jwt.ValidationError)
 
@@ -72,7 +72,7 @@ func (t JWToken) Expired() bool {
 	return false
 }
 
-func (t JWToken) GetPayloadField(key string) (interface{}, error) {
+func (t Token) GetPayloadField(key string) (interface{}, error) {
 	token, err := Parse(t.String())
 	if err != nil {
 		return nil, err
@@ -84,18 +84,18 @@ func (t JWToken) GetPayloadField(key string) (interface{}, error) {
 	}
 }
 
-func (t JWToken) SetPayloadField(key string, value interface{}) (Token, error) {
+func (t Token) SetPayloadField(key string, value interface{}) (Token, error) {
 	token, err := Parse(t.String())
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		claims[key] = value
 		token.Claims = claims
 		tokenStr, err := signToken(token)
-		return JWToken(tokenStr), err
+		return Token(tokenStr), err
 	} else {
-		panic("Error while set payload from jwtoken")
+		panic("Error while set payload from token")
 	}
 }
 
