@@ -99,3 +99,10 @@ func (t Token) SetPayloadField(key string, value interface{}) (Token, error) {
 	}
 }
 
+func (t Token) IsValid() bool {
+	_, err := Parse(t.String())
+	if err != nil {
+		return false
+	}
+	return true
+}
