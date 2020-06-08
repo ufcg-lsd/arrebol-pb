@@ -2,47 +2,71 @@ package worker
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
+	"github.com/joho/godotenv"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
-	"log"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 )
 
+const FakeWorkerId = "fake_worker"
+
+func OpenDriver() *storage.Storage {
+	s := storage.New(os.Getenv("DATABASE_ADDRESS"), os.Getenv("DATABASE_PORT"), os.Getenv("DATABASE_USER"),
+		os.Getenv("DATABASE_NAME"), os.Getenv("DATABASE_PASSWORD"))
+	s.Setup()
+	return s
+}
+
+func CloseDriver(s *storage.Storage, t *testing.T) {
+	err := s.Driver().Close()
+
+	if err != nil {
+		t.Fail()
+	}
+}
+
+func GenerateWorkerSignature(body interface{}, workerId string) (signature []uint8, err error) {
+	var data []byte
+	if data, err = json.Marshal(body); err == nil {
+		var privKey *rsa.PrivateKey
+		if privKey, err = crypto.GetPrivateKey(os.Getenv(key.KeysPath) + "/" + workerId); err == nil {
+			signature, err = crypto.Sign(privKey, data)
+		}
+	}
+	return
+}
+
 func TestWorkerApiAddWorker(t *testing.T) {
+	_ = godotenv.Load("../../test/.env")
 	_ = os.Setenv(key.KeysPath, "../../test/keys")
 	_ = os.Setenv(allowlist.ListFilePath, "../../test/allowlist/allowlist")
-	var worker = worker.Worker{
-		ID:      "fake_worker",
+	s := OpenDriver()
+	defer CloseDriver(s, t)
+
+	worker := worker.Worker{
+		ID:      FakeWorkerId,
 		VCPU:    1.5,
 		RAM:     1024,
 		QueueID: 1,
 	}
-
 	data, err := json.Marshal(worker)
-	if err != nil {
-		t.Fatal(err)
-	}
+	CheckError(t, err)
 
-	var signature []uint8
-	log.Println(os.Getwd())
-	if privKey, err := crypto.GetPrivateKey("../../test/keys/fake_worker"); err != nil {
-		t.Fatal(err)
-	} else {
-		signature, err = crypto.Sign(privKey, data)
-	}
+	signature, err := GenerateWorkerSignature(worker, FakeWorkerId)
+	CheckError(t, err)
 
-	api := New(nil)
+	api := New(s)
 	req, err := http.NewRequest("POST", "/v1/workers", bytes.NewBuffer(data))
-	if err != nil {
-		t.Fatal(err)
-	}
+	CheckError(t, err)
 
 	req.Header.Set(SignatureHeader, string(signature))
 
@@ -56,16 +80,32 @@ func TestWorkerApiAddWorker(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	// Check the response body is what we expect.
-	expected := `null`
-	expectedToken := "fake_worker#default#1.50#1024"
-	if strings.TrimSpace(rr.Body.String()) != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
+	workers, err := s.RetrieveWorkersByQueueID(1)
+	CheckError(t, err)
+	contains := false
+	for _, w := range workers {
+		if w.Equals(&worker) {
+			contains = true
+			break
+		}
 	}
 
-	if rr.Header().Get("Token") != expectedToken {
-		t.Errorf("handler returned unexpected token: got %v want %v",
-			rr.Body.String(), expected)
+	if !contains {
+		t.Fatal("The worker was not found in the storage")
+	}
+
+	var _token TokenResponse
+	err = json.NewDecoder(rr.Body).Decode(&_token)
+	CheckError(t, err)
+
+	returnedToken := token.Token(_token.ArrebolWorkerToken)
+	if !returnedToken.IsValid() {
+		t.Error("The token was invalid")
+	}
+}
+
+func CheckError(t *testing.T, error error) {
+	if error != nil {
+		t.Fatal(error)
 	}
 }
