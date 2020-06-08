@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/whitelist"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 	"log"
 	"net/http"
@@ -17,12 +17,12 @@ import (
 
 func TestWorkerApiAddWorker(t *testing.T) {
 	_ = os.Setenv(key.KeysPath, "../../test/keys")
-	_ = os.Setenv(whitelist.WhiteListPath, "../../test/whitelist/whitelist")
+	_ = os.Setenv(allowlist.ListFilePath, "../../test/allowlist/allowlist")
 	var worker = worker.Worker{
 		ID:      "fake_worker",
 		VCPU:    1.5,
 		RAM:     1024,
-		QueueId: "default",
+		QueueID: 1,
 	}
 
 	data, err := json.Marshal(worker)

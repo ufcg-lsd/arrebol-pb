@@ -1,4 +1,4 @@
-package whitelist
+package allowlist
 
 import (
 	"bufio"
@@ -7,22 +7,22 @@ import (
 )
 
 const (
-	WhiteListPath = "WHITE_LIST_PATH"
+	ListFilePath = "ALLOW_LIST_PATH"
 )
 
-type WhiteList struct {
+type AllowList struct {
 	list []string
 }
 
-func NewWhiteList() WhiteList {
+func NewAllowList() AllowList {
 	list, err := loadSourceFile()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return WhiteList{list: list}
+	return AllowList{list: list}
 }
 
-func (l *WhiteList) Contains(workerId string) bool {
+func (l *AllowList) Contains(workerId string) bool {
 	for _, current := range l.list {
 		if current == workerId {
 			return true
@@ -32,7 +32,7 @@ func (l *WhiteList) Contains(workerId string) bool {
 }
 
 func loadSourceFile() ([]string, error) {
-	file, err := os.Open(os.Getenv(WhiteListPath))
+	file, err := os.Open(os.Getenv(ListFilePath))
 	if err != nil {
 		return nil, err
 	}

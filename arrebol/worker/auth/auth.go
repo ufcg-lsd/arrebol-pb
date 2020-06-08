@@ -5,19 +5,19 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/whitelist"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 )
 
 type Authenticator struct {
-	whitelist       whitelist.WhiteList
+	allowlist allowlist.AllowList
 }
 
-func NewJWTAuth() *Authenticator {
-	whitelist := whitelist.NewWhiteList()
+func NewAuth() *Authenticator {
+	allowlist := allowlist.NewAllowList()
 	var auth = Authenticator{
-		whitelist: whitelist,
+		allowlist: allowlist,
 	}
 	return &auth
 }
@@ -36,11 +36,11 @@ func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker)
 	if err != nil {
 		return token, err
 	}
-	if contains := auth.whitelist.Contains(worker.ID); contains {
+	if contains := auth.allowlist.Contains(worker.ID); contains {
 		token, err = auth.newToken(worker)
 		return token, err
 	} else {
-		return  token, errors.New("The worker [" + worker.ID + "] is not in the whitelist")
+		return  token, errors.New("The worker [" + worker.ID + "] is not in the allowlist")
 	}
 }
 
