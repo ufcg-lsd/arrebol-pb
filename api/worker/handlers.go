@@ -19,9 +19,9 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	signature := r.Header.Get(SignatureHeader)
 
 
-	if string(signature) == "" {
+	if signature == "" {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
-			Message: "signature header was not found",
+			Message: "Signature header was not found",
 			Status:  http.StatusBadRequest,
 		})
 		return
