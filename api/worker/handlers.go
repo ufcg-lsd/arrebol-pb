@@ -55,16 +55,6 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token, err := (*tempToken).SetPayloadField("QueueId", queueId)
-	queue, err := a.storage.RetrieveQueue(queueId)
-	queue.Workers = append(queue.Workers, worker)
-	err = a.storage.SaveQueue(queue)
-	if err != nil {
-		api.Write(w, http.StatusInternalServerError, api.ErrorResponse{
-			Message: err.Error(),
-			Status:  http.StatusInternalServerError,
-		})
-	}
-
 	if err != nil {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
 			Message: "Maybe the body has a wrong shape",

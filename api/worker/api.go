@@ -20,7 +20,7 @@ func New(storage *storage.Storage) *WorkerApi {
 	return &WorkerApi{
 		storage:   storage,
 		auth :     *auth.NewAuth(),
-		scheduler: *scheduler.NewScheduler(),
+		scheduler: *scheduler.NewScheduler(storage),
 	}
 }
 
