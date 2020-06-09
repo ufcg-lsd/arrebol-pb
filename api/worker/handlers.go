@@ -10,7 +10,6 @@ import (
 )
 
 const SignatureHeader string = "SIGNATURE";
-const PublicKeyHeader string = "PUBLIC_KEY"
 const WrongBodyMsg string = "Maybe the body has a wrong shape"
 
 type TokenResponse struct {
@@ -19,12 +18,8 @@ type TokenResponse struct {
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var (
-		err       error
+		err error
 		signature string
-		publicKey string
-		_worker   *worker.Worker
-		_token    token.Token
-		queueId   uint
 	)
 
 	if signature, err = GetHeader(r, SignatureHeader); err != nil {
@@ -32,17 +27,18 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if publicKey, err = GetHeader(r, PublicKeyHeader); err != nil {
-		WriteBadRequest(&w, err.Error())
-		return
-	}
+	var (
+		_worker *worker.Worker
+		t       token.Token
+		queueId uint
+	)
 
 	if err = json.NewDecoder(r.Body).Decode(&_worker); err != nil {
 		WriteBadRequest(&w, WrongBodyMsg)
 		return
 	}
 
-	if _token, err = a.auth.Authenticate(publicKey, []byte(signature), _worker); err != nil {
+	if t, err = a.auth.Authenticate([]byte(signature), _worker); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
@@ -55,12 +51,12 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _token, err = _token.SetPayloadField("QueueId", queueId); err != nil {
+	if t, err = t.SetPayloadField("QueueId", queueId); err != nil {
 		WriteBadRequest(&w, err.Error())
 		return
 	}
 
-	api.Write(w, http.StatusOK, TokenResponse{_token.String()})
+	api.Write(w, http.StatusOK, TokenResponse{t.String()})
 }
 
 func GetHeader(r *http.Request, key string) (string, error) {

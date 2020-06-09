@@ -2,10 +2,10 @@ package auth
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 )
@@ -22,24 +22,26 @@ func NewAuth() *Authenticator {
 	return &auth
 }
 
-func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
+func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker) (token.Token, error) {
 	data, err := json.Marshal(worker)
+	var token token.Token
 	if err != nil {
-		return "", err
+		return token, err
 	}
-	publicKey, err := crypto.ParsePublicKeyFromPemStr(rawPublicKey)
+	publicKey, err := key.GetPublicKey(worker.ID)
 	if err != nil {
-		return "", err
+		return token, err
 	}
 	err = crypto.Verify(publicKey, data, signature)
 	if err != nil {
-		return "", err
+		return token, err
 	}
-	if contains := auth.allowlist.Contains(worker.ID); !contains {
-		return  "", errors.New("The worker [" + worker.ID + "] is not in the allowlist")
+	if contains := auth.allowlist.Contains(worker.ID); contains {
+		token, err = auth.newToken(worker)
+		return token, err
+	} else {
+		return  token, errors.New("The worker [" + worker.ID + "] is not in the allowlist")
 	}
-	if err := key.SavePublicKey(worker.ID, rawPublicKey); err != nil {return "", err}
-	return auth.newToken(worker)
 }
 
 func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) {

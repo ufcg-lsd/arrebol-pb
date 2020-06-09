@@ -10,11 +10,8 @@ const (
 	KeysPath = "KEYS_PATH"
 )
 
-func SavePublicKey(workerId, content string) error {
-	publicKey, err := crypto.ParsePublicKeyFromPemStr(content)
-	if err != nil {return err}
-	path := os.Getenv(KeysPath) + "/" + workerId + ".pub"
-	return crypto.SavePublicKey(path, publicKey)
+func SavePublicKey(workerPublicKey *rsa.PublicKey) error {
+	return nil
 }
 
 func GetPublicKey(workerId string) (*rsa.PublicKey, error) {

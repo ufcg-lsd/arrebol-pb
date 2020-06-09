@@ -55,35 +55,6 @@ func GetPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 	return rsaKey, nil
 }
 
-func ParsePublicKeyFromPemStr(content string) (*rsa.PublicKey, error) {
-	block, rest := pem.Decode([]byte(content))
-	if len(rest) > 0 {
-		return nil, errors.New("failed to parse PEM block containing the key")
-	}
-
-	if block.Type != "RSA PUBLIC KEY" {
-		return nil, errors.New("RSA public key is of the wrong type")
-	}
-
-	pub, err := x509.ParsePKCS1PublicKey(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	return pub, nil
-}
-
-func SavePublicKey(path string, key *rsa.PublicKey) error {
-	bytes, err := x509.MarshalPKIXPublicKey(key)
-	if err != nil {
-		return err
-	}
-	_pem := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: bytes,
-	})
-	return ioutil.WriteFile(path, _pem, 0644)
-}
-
 
 func decodeRSAKey(keyPath string) (*pem.Block, error) {
 	keyContent, err := ioutil.ReadFile(keyPath)
