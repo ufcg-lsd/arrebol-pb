@@ -46,7 +46,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var queueId uint
-	if queueId, err = a.scheduler.Join(*worker); err != nil {
+	if queueId, err = a.manager.Join(*worker); err != nil {
 		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
 			Message: "Maybe the body has a wrong shape",
 			Status:  http.StatusBadRequest,
