@@ -22,9 +22,9 @@ func NewAuth() *Authenticator {
 	return &auth
 }
 
-func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker) (*token.Token, error) {
+func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker) (token.Token, error) {
 	data, err := json.Marshal(worker)
-	var token *token.Token
+	var token token.Token
 	if err != nil {
 		return token, err
 	}
@@ -44,15 +44,15 @@ func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker)
 	}
 }
 
-func (auth *Authenticator) newToken(worker *worker.Worker) (*token.Token, error) {
+func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) {
 	var t token.Token
 	var err error
 
 	t, err = token.NewToken(worker)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return &t, nil
+	return t, nil
 }
 
 func (auth *Authenticator) Authorize(token *token.Token) error {

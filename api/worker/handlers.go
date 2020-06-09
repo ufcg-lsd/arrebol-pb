@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
@@ -9,35 +10,35 @@ import (
 )
 
 const SignatureHeader string = "SIGNATURE";
+const WrongBodyMsg string = "Maybe the body has a wrong shape"
 
 type TokenResponse struct {
 	ArrebolWorkerToken string
 }
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
-	var err error
-	signature := r.Header.Get(SignatureHeader)
+	var (
+		err error
+		signature string
+	)
 
-
-	if signature == "" {
-		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
-			Message: "Signature header was not found",
-			Status:  http.StatusBadRequest,
-		})
+	if signature, err = GetHeader(r, SignatureHeader); err != nil {
+		WriteBadRequest(&w, err.Error())
 		return
 	}
 
-	var worker *worker.Worker
-	if err = json.NewDecoder(r.Body).Decode(&worker); err != nil {
-		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
-			Message: "Maybe the body has a wrong shape",
-			Status:  http.StatusBadRequest,
-		})
+	var (
+		_worker *worker.Worker
+		t       token.Token
+		queueId uint
+	)
+
+	if err = json.NewDecoder(r.Body).Decode(&_worker); err != nil {
+		WriteBadRequest(&w, WrongBodyMsg)
 		return
 	}
 
-	var tempToken *token.Token
-	if tempToken, err = a.auth.Authenticate([]byte(signature), worker); err != nil {
+	if t, err = a.auth.Authenticate([]byte(signature), _worker); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
@@ -45,24 +46,28 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var queueId uint
-	if queueId, err = a.manager.Join(*worker); err != nil {
-		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
-			Message: "Maybe the body has a wrong shape",
-			Status:  http.StatusBadRequest,
-		})
+	if queueId, err = a.manager.Join(*_worker); err != nil {
+		WriteBadRequest(&w, err.Error())
 		return
 	}
 
-	token, err := (*tempToken).SetPayloadField("QueueId", queueId)
-	if err != nil {
-		api.Write(w, http.StatusBadRequest, api.ErrorResponse{
-			Message: "Maybe the body has a wrong shape",
-			Status:  http.StatusBadRequest,
-		})
+	if t, err = t.SetPayloadField("QueueId", queueId); err != nil {
+		WriteBadRequest(&w, err.Error())
 		return
 	}
 
-	api.Write(w, http.StatusOK, TokenResponse{token.String()})
+	api.Write(w, http.StatusOK, TokenResponse{t.String()})
 }
 
+func GetHeader(r *http.Request, key string) (string, error) {
+	value := r.Header.Get(key)
+	if value == "" {return "", errors.New("The header [" + key + "] was not found")}
+	return value, nil
+}
+
+func WriteBadRequest(w *http.ResponseWriter, msg string) {
+	api.Write(*w, http.StatusBadRequest, api.ErrorResponse{
+		Message: msg,
+		Status:  http.StatusBadRequest,
+	})
+}
