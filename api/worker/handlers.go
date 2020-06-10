@@ -6,6 +6,7 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
+	"log"
 	"net/http"
 )
 
@@ -38,11 +39,12 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&_worker); err != nil {
-		WriteBadRequest(&w, WrongBodyMsg)
+		WriteBadRequest(&w, WrongBodyMsg + ": " + err.Error())
 		return
 	}
 
 	if _token, err = a.auth.Authenticate(publicKey, []byte(signature), _worker); err != nil {
+		log.Println("Unauthorized: " + r.RemoteAddr + " - " + err.Error())
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
@@ -60,16 +62,20 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("Worker [" + _worker.ID + "] has been successfully joined")
+	log.Println("Worker [" + _worker.ID + "] Token: " + _token.String())
 	api.Write(w, http.StatusOK, TokenResponse{_token.String()})
 }
 
 func GetHeader(r *http.Request, key string) (string, error) {
+	log.Println("Getting header [" + key + "]")
 	value := r.Header.Get(key)
 	if value == "" {return "", errors.New("The header [" + key + "] was not found")}
 	return value, nil
 }
 
 func WriteBadRequest(w *http.ResponseWriter, msg string) {
+	log.Println("Bad Request: " + msg)
 	api.Write(*w, http.StatusBadRequest, api.ErrorResponse{
 		Message: msg,
 		Status:  http.StatusBadRequest,
