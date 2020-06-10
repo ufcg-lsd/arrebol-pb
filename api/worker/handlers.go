@@ -10,8 +10,8 @@ import (
 	"net/http"
 )
 
-const SignatureHeader string = "SIGNATURE"
-const PublicKeyHeader string = "PUBLIC_KEY"
+const SignatureHeader string = "Signature"
+const PublicKeyHeader string = "Public-Key"
 const WrongBodyMsg string = "Maybe the body has a wrong shape"
 
 type TokenResponse struct {
