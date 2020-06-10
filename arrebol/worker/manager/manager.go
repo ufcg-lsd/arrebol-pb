@@ -3,6 +3,7 @@ package manager
 import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
+	"log"
 )
 
 type Manager struct {
@@ -26,9 +27,11 @@ func (m *Manager) Join(w worker.Worker) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
+	log.Println("Worker [" + w.ID + "] has been assigned to queue [" + string(queueId) + "]")
 	return queueId, nil
 }
 
 func (m *Manager) selectQueue(w worker.Worker) uint {
+	log.Println("Selecting a queue for worker [" + w.ID + "]")
 	return 1
 }
