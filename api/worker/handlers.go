@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"github.com/ufcg-lsd/arrebol-pb/api"
@@ -22,7 +23,8 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var (
 		err       error
 		signature string
-		publicKey string
+		encodedPublicKey string
+		publicKey []byte
 		_worker   *worker.Worker
 		_token    token.Token
 		queueId   uint
@@ -33,7 +35,12 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if publicKey, err = GetHeader(r, PublicKeyHeader); err != nil {
+	if encodedPublicKey, err = GetHeader(r, PublicKeyHeader); err != nil {
+		WriteBadRequest(&w, err.Error())
+		return
+	}
+
+	if publicKey, err = base64.StdEncoding.DecodeString(encodedPublicKey); err != nil {
 		WriteBadRequest(&w, err.Error())
 		return
 	}
@@ -43,7 +50,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _token, err = a.auth.Authenticate(publicKey, []byte(signature), _worker); err != nil {
+	if _token, err = a.auth.Authenticate(string(publicKey), []byte(signature), _worker); err != nil {
 		log.Println("Unauthorized: " + r.RemoteAddr + " - " + err.Error())
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
