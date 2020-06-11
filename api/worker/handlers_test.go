@@ -3,6 +3,7 @@ package worker
 import (
 	"bytes"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"github.com/joho/godotenv"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
@@ -12,6 +13,7 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -67,22 +69,26 @@ func TestWorkerApiAddWorker(t *testing.T) {
 
 	publicKey, err := ioutil.ReadFile("../../test/keys/fake.pub")
 	CheckError(t, err)
+	log.Println("PublicKey: " + string(publicKey))
+
+	encodedPubKey := base64.StdEncoding.EncodeToString(publicKey)
+	log.Println("Encoded PublicKey: " + encodedPubKey)
 
 	api := New(s)
 	req, err := http.NewRequest("POST", "/v1/workers", bytes.NewBuffer(data))
 	CheckError(t, err)
 
 	req.Header.Set(SignatureHeader, string(signature))
-	req.Header.Set(PublicKeyHeader, string(publicKey))
+	req.Header.Set(PublicKeyHeader, encodedPubKey)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(api.AddWorker)
 	handler.ServeHTTP(rr, req)
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
+	if status := rr.Code; status != http.StatusCreated {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+			status, http.StatusCreated)
 	}
 
 	workers, err := s.RetrieveWorkersByQueueID(1)
