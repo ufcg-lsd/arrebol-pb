@@ -12,7 +12,8 @@ type Manager struct {
 func NewManager(storage *storage.Storage) *Manager {
 	return &Manager{
 		storage:storage,
-	}}
+	}
+}
 
 //Join selects a queue for Worker to work on and joins him to that queue.
 //If a problem occurs at the join, an error is returned and the queue ID returned is 0 by default,
