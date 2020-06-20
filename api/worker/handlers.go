@@ -46,6 +46,14 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err = a.auth.Authorize(&t); err != nil {
+		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
+			Message: err.Error(),
+			Status:  http.StatusUnauthorized,
+		})
+		return
+	}
+
 	if queueId, err = a.manager.Join(*_worker); err != nil {
 		WriteBadRequest(&w, err.Error())
 		return

@@ -2,10 +2,10 @@ package auth
 
 import (
 	"encoding/json"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
+	"errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 )
@@ -36,12 +36,7 @@ func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker)
 	if err != nil {
 		return token, err
 	}
-	if contains := auth.allowlist.Contains(worker.ID); contains {
-		token, err = auth.newToken(worker)
-		return token, err
-	} else {
-		return  token, errors.New("The worker [" + worker.ID + "] is not in the allowlist")
-	}
+	return auth.newToken(worker)
 }
 
 func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) {
@@ -56,5 +51,17 @@ func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) 
 }
 
 func (auth *Authenticator) Authorize(token *token.Token) error {
-	panic("implement me")
+	// TODO authorize token
+	var (
+		err error
+		workerId string
+	)
+	workerId, err = token.GetWorkerId()
+	if err != nil {
+		return errors.New("error getting queueId from token")
+	}
+	if contains := auth.allowlist.Contains(workerId); !contains {
+		return errors.New("The worker [" + workerId + "] is not in the allowlist")
+	}
+	return err
 }
