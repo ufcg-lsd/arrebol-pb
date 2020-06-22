@@ -35,10 +35,6 @@ func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, w
 	if err != nil {
 		return "", err
 	}
-	if contains := auth.allowlist.Contains(worker.ID); !contains {
-		return  "", errors.New("The worker [" + worker.ID + "] is not in the allowlist")
-	}
-	if err := key.SavePublicKey(worker.ID, rawPublicKey); err != nil {return "", err}
 	return auth.newToken(worker)
 }
 
@@ -54,5 +50,17 @@ func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) 
 }
 
 func (auth *Authenticator) Authorize(token *token.Token) error {
-	panic("implement me")
+	// TODO authorize token
+	var (
+		err error
+		workerId string
+	)
+	workerId, err = token.GetWorkerId()
+	if err != nil {
+		return errors.New("error getting queueId from token")
+	}
+	if contains := auth.allowlist.Contains(workerId); !contains {
+		return errors.New("The worker [" + workerId + "] is not in the allowlist")
+	}
+	return err
 }
