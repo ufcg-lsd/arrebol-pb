@@ -11,6 +11,7 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -64,11 +65,15 @@ func TestWorkerApiAddWorker(t *testing.T) {
 	signature, err := GenerateWorkerSignature(worker, FakeWorkerId)
 	CheckError(t, err)
 
+	publicKey, err := ioutil.ReadFile("../../test/keys/fake.pub")
+	CheckError(t, err)
+
 	api := New(s)
 	req, err := http.NewRequest("POST", "/v1/workers", bytes.NewBuffer(data))
 	CheckError(t, err)
 
 	req.Header.Set(SignatureHeader, string(signature))
+	req.Header.Set(PublicKeyHeader, string(publicKey))
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(api.AddWorker)

@@ -22,19 +22,18 @@ func NewAuth() *Authenticator {
 	return &auth
 }
 
-func (auth *Authenticator) Authenticate(signature []byte, worker *worker.Worker) (token.Token, error) {
+func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
 	data, err := json.Marshal(worker)
-	var token token.Token
 	if err != nil {
-		return token, err
+		return "", err
 	}
-	publicKey, err := key.GetPublicKey(worker.ID)
+	publicKey, err := crypto.ParsePublicKeyFromPemStr(rawPublicKey)
 	if err != nil {
-		return token, err
+		return "", err
 	}
 	err = crypto.Verify(publicKey, data, signature)
 	if err != nil {
-		return token, err
+		return "", err
 	}
 	return auth.newToken(worker)
 }
