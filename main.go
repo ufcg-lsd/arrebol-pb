@@ -5,7 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/api/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"os"
@@ -37,7 +37,7 @@ func main() {
 	s.Setup()
 	defer s.Driver().Close()
 
-	var jobDispatcher = arrebol.NewDispatcher(s)
+	var jobDispatcher = service.NewDispatcher(s)
 	go jobDispatcher.Start()
 
 	a := api.New(s, jobDispatcher)
@@ -54,17 +54,17 @@ func main() {
 		}
 	}()
 
-	go startWorkerApi()
+	go startWorkerApi(s)
 
 	if err := a.Start(*apiPort); err != nil {
 		log.Fatal(err.Error())
 	}
 }
 
-func startWorkerApi() {
+func startWorkerApi(storage *storage.Storage) {
 	const WorkerApiPort = "8000"
 
-	workerApi := worker.New()
+	workerApi := worker.New(storage)
 	err := workerApi.Start(WorkerApiPort)
 
 	if err != nil {

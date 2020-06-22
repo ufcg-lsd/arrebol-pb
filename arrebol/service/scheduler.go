@@ -1,8 +1,8 @@
-package arrebol
+package service
 
 import (
 	"fmt"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/driver"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/driver"
 	"github.com/ufcg-lsd/arrebol-pb/docker"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"

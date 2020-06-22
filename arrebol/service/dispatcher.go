@@ -1,4 +1,4 @@
-package arrebol
+package service
 
 import (
 	"github.com/ufcg-lsd/arrebol-pb/storage"

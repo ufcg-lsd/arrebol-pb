@@ -1,4 +1,4 @@
-package arrebol
+package service
 
 import (
 	"github.com/ufcg-lsd/arrebol-pb/storage"
@@ -15,8 +15,8 @@ type Supervisor struct {
 
 func NewSupervisor(queue *storage.Queue) *Supervisor {
 	return &Supervisor{
-		queue:        queue,
-		scheduler:    NewScheduler(Fifo),
+		queue:     queue,
+		scheduler: NewScheduler(Fifo),
 	}
 }
 

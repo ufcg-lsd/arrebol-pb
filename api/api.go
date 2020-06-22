@@ -19,9 +19,9 @@ package api
 
 import (
 	"context"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol"
-	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"github.com/gorilla/mux"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"net/http"
 )
@@ -29,10 +29,10 @@ import (
 type HttpApi struct {
 	storage *storage.Storage
 	server  *http.Server
-	arrebol *arrebol.Dispatcher
+	arrebol *service.Dispatcher
 }
 
-func New(storage *storage.Storage, arrebol *arrebol.Dispatcher) *HttpApi {
+func New(storage *storage.Storage, arrebol *service.Dispatcher) *HttpApi {
 	return &HttpApi{
 		storage: storage,
 		arrebol: arrebol,

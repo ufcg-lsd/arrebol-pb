@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"log"
 )
 
@@ -54,6 +55,7 @@ func (s *Storage) RetrieveQueue(queueID uint) (*Queue, error) {
 	var queue Queue
 	err := s.driver.First(&queue, queueID).Error
 	queue.Jobs, _ = s.RetrieveJobsByQueueID(queueID)
+	queue.Workers, _ = s.RetrieveWorkersByQueueID(queueID)
 	// TODO Retrieve resource nodes of queue
 	return &queue, err
 }
@@ -151,6 +153,15 @@ func (s *Storage) GetDefaultQueue() (*Queue, error) {
 		return nil, err
 	}
 	return &queue, nil
+}
+
+func (s *Storage) RetrieveWorkersByQueueID(queueID uint) ([]*worker.Worker, error) {
+	var workers []*worker.Worker
+
+	log.Printf("Retrieving workers of queue %d", queueID)
+	err := s.driver.Where("queue_id = ?", queueID).Find(&workers).Error
+
+	return workers, err
 }
 
 func createDefaults(storage *Storage) {

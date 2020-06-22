@@ -2,13 +2,14 @@ package storage
 
 import (
 	"fmt"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/errors"
 	"github.com/jinzhu/gorm"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 )
 
 func (s *Storage) DropTablesIfExist() *gorm.DB {
 	return s.driver.DropTableIfExists(&Command{}, &TaskConfig{}, &TaskMetadata{},
-		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
+		&Task{}, &Job{}, &ResourceNode{}, &Queue{}, &worker.Worker{})
 }
 
 func (s *Storage) CreateTables() {
@@ -20,6 +21,7 @@ func (s *Storage) CreateTables() {
 		"jobs": &Job{},
 		"resource_nodes": &ResourceNode{},
 		"queues": &Queue{},
+		"workers": &worker.Worker{},
 	}
 
 	for _, v := range tables {
@@ -61,7 +63,8 @@ func (s *Storage) ConfigureSchema() {
 		&ResourceNode{}).AddForeignKey(
 		"queue_id", "queues(id)", "CASCADE", "CASCADE").Model(
 		&Job{}).AddForeignKey(
-		"queue_id", "queues(id)", "CASCADE", "CASCADE")
+		"queue_id", "queues(id)", "CASCADE", "CASCADE").Model(
+		&worker.Worker{}).AddForeignKey("queue_id", "queues(id)", "CASCADE", "CASCADE")
 }
 
 func (s *Storage) CreateSchema() {
@@ -76,6 +79,7 @@ type Queue struct {
 	gorm.Model
 	Name  string          `json:"Name"`
 	Jobs  []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
+	Workers  []*worker.Worker        `json:"Workers" gorm:"ForeignKey:QueueID"`
 	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
 }
 

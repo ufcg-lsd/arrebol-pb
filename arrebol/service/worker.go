@@ -1,9 +1,9 @@
-package arrebol
+package service
 
 import (
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/driver"
-	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"github.com/hashicorp/go-uuid"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/driver"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 )
 
 type Worker struct {
