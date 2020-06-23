@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"github.com/gorilla/mux"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os/exec"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -397,6 +398,24 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	//     type: string
 	Write(w, http.StatusOK, Version{Tag:
                                   os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
+}
+
+func (a *HttpApi) GetPublicKey(w http.ResponseWriter, r *http.Request) {
+	publickey, err := ioutil.ReadFile(os.Getenv("ARREBOL_PUB_KEY_PATH"))
+	if err != nil {
+		write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: "Error while trying to get arrebol public key",
+			Status:  http.StatusInternalServerError,
+		})
+	}
+	_, err = w.Write(publickey)
+	if err != nil {
+		write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: "Error while trying to get arrebol public key",
+			Status:  http.StatusInternalServerError,
+		})
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {

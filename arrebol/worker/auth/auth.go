@@ -8,7 +8,6 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
-	"log"
 )
 
 type Authenticator struct {
@@ -37,15 +36,8 @@ func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, w
 	if err != nil {
 		return "", err
 	}
-	log.Println("The worker [" + worker.ID + "] has a valid signature")
-
-	if contains := auth.allowlist.Contains(worker.ID); !contains {
-		return  "", errors.New("The worker [" + worker.ID + "] is not in the allowlist")
-	}
-	log.Println("The worker [" + worker.ID + "] is allowlisted")
-
-	log.Println("Saving the worker [" + worker.ID + "] public key")
 	if err := key.SavePublicKey(worker.ID, rawPublicKey); err != nil {return "", err}
+
 	return auth.newToken(worker)
 }
 
@@ -61,5 +53,17 @@ func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) 
 }
 
 func (auth *Authenticator) Authorize(token *token.Token) error {
-	panic("implement me")
+	// TODO authorize token
+	var (
+		err error
+		workerId string
+	)
+	workerId, err = token.GetWorkerId()
+	if err != nil {
+		return errors.New("error getting queueId from token")
+	}
+	if contains := auth.allowlist.Contains(workerId); !contains {
+		return errors.New("The worker [" + workerId + "] is not in the allowlist")
+	}
+	return err
 }

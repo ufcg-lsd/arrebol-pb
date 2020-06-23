@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
@@ -80,8 +81,27 @@ func (t Token) GetPayloadField(key string) (interface{}, error) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return claims[key], nil
 	} else {
-		return nil, errors.New("Error while set payload from jwtoken")
+		return nil, errors.New("Error while get payload from jwtoken")
 	}
+}
+
+func (t Token) GetQueueId() (uint, error) {
+	_queueId, err := t.GetPayloadField("QueueId")
+	if err != nil {
+		return 0, err
+	}
+	if queueId, ok := _queueId.(uint); ok {
+		return queueId, nil
+	}
+	return 0, errors.New("QueueId was not found")
+}
+
+func (t Token) GetWorkerId() (string, error) {
+	_workerId, err := t.GetPayloadField("WorkerId")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%v", _workerId), nil
 }
 
 func (t Token) SetPayloadField(key string, value interface{}) (Token, error) {
