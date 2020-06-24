@@ -105,12 +105,17 @@ func TestWorkerApiAddWorker(t *testing.T) {
 		t.Fatal("The worker was not found in the storage")
 	}
 
-	var _token TokenResponse
+	var _token map[string]string
 	err = json.NewDecoder(rr.Body).Decode(&_token)
 	CheckError(t, err)
 
-	returnedToken := token.Token(_token.ArrebolWorkerToken)
-	if !returnedToken.IsValid() {
+	returnedToken, ok := _token["arrebol-worker-token"]
+
+	if !ok {
+		t.Error("Arrebol token has not been returned")
+	}
+
+	if !token.Token(returnedToken).IsValid() {
 		t.Error("The token was invalid")
 	}
 }
