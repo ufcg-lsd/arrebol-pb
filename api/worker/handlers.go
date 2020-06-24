@@ -79,7 +79,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Worker [" + _worker.ID + "] has been successfully joined")
 	log.Println("Worker [" + _worker.ID + "] Token: " + _token.String())
-	api.Write(w, http.StatusCreated, TokenResponse{_token.String()})
+	api.Write(w, http.StatusCreated, map[string]string{"arrebol-worker-token": _token.String()})
 }
 
 func GetHeader(r *http.Request, key string) (string, error) {
