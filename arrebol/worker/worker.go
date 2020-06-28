@@ -1,10 +1,22 @@
 package worker
 
+import (
+	uuid "github.com/satori/go.uuid"
+	"time"
+)
+
 type Worker struct {
-	ID      string  `json:"Id"`
+	Base
 	VCPU    float32 `json:"Vcpu"`
 	RAM     uint32  `json:"Ram"` //Megabytes
 	QueueID uint    `json:"QueueID, omitempty"`
+}
+
+type Base struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key;"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
 }
 
 func (w *Worker) Equals(o *Worker) bool {
