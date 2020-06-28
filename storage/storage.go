@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"log"
 )
 
@@ -45,8 +44,6 @@ func (s *Storage) Setup() {
 func (s *Storage) Driver() *gorm.DB {
 	return s.driver
 }
-
-
 
 func createDefaults(storage *Storage) {
 	q := &Queue{

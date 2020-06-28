@@ -9,6 +9,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
+	github.com/google/logger v1.1.0
 	github.com/gorilla/mux v1.7.4
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/jinzhu/gorm v1.9.12

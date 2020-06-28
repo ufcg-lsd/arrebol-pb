@@ -28,7 +28,7 @@ func NewToken(worker *worker.Worker) (Token, error){
 	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &Claims{
 		QueueId:        worker.QueueID,
-		WorkerId:       worker.ID,
+		WorkerId:       worker.ID.String(),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},

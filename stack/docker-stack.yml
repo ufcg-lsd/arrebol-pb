@@ -12,16 +12,17 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      db:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
+
   dba:
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: "arrebol@lsd.ufcg.edu.br"
       PGADMIN_DEFAULT_PASSWORD: "postgres"
     networks:
-      net
+      - net
     ports:
-      - 80:80
+      - 8080:80
 
   server:
     image: emanueljoivo/arrebol-pb:0.0.1

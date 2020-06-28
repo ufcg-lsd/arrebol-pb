@@ -77,8 +77,8 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("Worker [" + _worker.ID + "] has been successfully joined")
-	log.Println("Worker [" + _worker.ID + "] Token: " + _token.String())
+	log.Println("Worker [" + _worker.ID.String() + "] has been successfully joined")
+	log.Println("Worker [" + _worker.ID.String() + "] Token: " + _token.String())
 	api.Write(w, http.StatusCreated, map[string]string{"arrebol-worker-token": _token.String()})
 }
 

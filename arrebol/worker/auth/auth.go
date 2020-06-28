@@ -36,7 +36,7 @@ func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, w
 	if err != nil {
 		return "", err
 	}
-	if err := key.SavePublicKey(worker.ID, rawPublicKey); err != nil {return "", err}
+	if err := key.SavePublicKey(worker.ID.String(), rawPublicKey); err != nil {return "", err}
 
 	return auth.newToken(worker)
 }

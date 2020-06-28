@@ -10,12 +10,12 @@ RUN go get -v
 
 RUN go install -v
 
-FROM debian:stretch-slim as production
+FROM alpine:latest as production
 
-COPY --from=build /go/bin/arrebol /usr/local/bin
+COPY --from=build /go/bin/arrebol-pb /usr/local/bin
 
 RUN echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
 
 EXPOSE 5000
 
-CMD ["arrebol"]
+CMD ["arrebol-pb"]
