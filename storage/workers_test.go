@@ -11,14 +11,14 @@ func TestHasUUID(t *testing.T) {
 	s := OpenDriver()
 	s.CreateTables()
 
-	t.Run("assert that the insertion works", func (t *testing.T) {
+	t.Run("assert that the insertion works", func(t *testing.T) {
 		if !s.driver.HasTable(&worker.Worker{}) {
 			t.Errorf("expected has a table but nothing was found")
 
 			expected := uuid.NewV4()
 
 			w := worker.Worker{
-				Base:    worker.Base{
+				Base: worker.Base{
 					ID:        expected,
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),

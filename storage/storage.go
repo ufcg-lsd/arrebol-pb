@@ -11,7 +11,8 @@ type Storage struct {
 	driver *gorm.DB
 }
 
-const dbDialect string =  "postgres"
+const dbDialect string = "postgres"
+
 var DB *Storage
 
 func New(host string, port string, user string, dbname string, password string) *Storage {

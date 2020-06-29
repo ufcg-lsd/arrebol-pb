@@ -41,14 +41,14 @@ func TestCreateTables(t *testing.T) {
 	t.Run("assertion that two tables don't will be created with same name", func(t *testing.T) {
 		s.DropTablesIfExist()
 
-		t.Run("assertion that the first table are created correctly", func(t *testing.T){
+		t.Run("assertion that the first table are created correctly", func(t *testing.T) {
 			cmd := Command{}
 			err, got := s.CreateTable(cmd)
 			var want = fmt.Sprintf("Table %+v correctly created", cmd)
 			assertMsg(t, got, want, err)
 		})
 
-		t.Run("assertion that the second table don't will be created", func(t *testing.T){
+		t.Run("assertion that the second table don't will be created", func(t *testing.T) {
 			cmd := Command{}
 			err, got := s.CreateTable(cmd)
 			var want = fmt.Sprintf("Table %+v already exists", cmd)
@@ -81,7 +81,7 @@ func TestDropTables(t *testing.T) {
 
 	t.Run("assert drop without tables", func(t *testing.T) {
 		got := s.DropTablesIfExist()
-		if  got.Error != nil {
+		if got.Error != nil {
 			t.Errorf("expected that nothing changes but an error occurred")
 		}
 	})

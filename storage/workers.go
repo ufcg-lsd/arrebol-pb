@@ -21,7 +21,7 @@ func (s *Storage) RetrieveWorkersByQueueID(queueID uint) ([]*worker.Worker, erro
 	return workers, err
 }
 
-func (s *Storage) SaveWorker(w worker.Worker ) (uuid.UUID, error) {
+func (s *Storage) SaveWorker(w worker.Worker) (uuid.UUID, error) {
 	tx := s.driver.Begin()
 
 	savedWorker := &worker.Worker{}
