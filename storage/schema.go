@@ -142,6 +142,8 @@ type Task struct {
 	Config   []TaskConfig   `json:"Config" gorm:"ForeignKey:TaskID"`
 	Metadata []TaskMetadata `json:"Metadata" gorm:"ForeignKey:TaskID"`
 	Commands []*Command     `json:"Commands" gorm:"ForeignKey:TaskID"`
+	ReportInterval int64 `json:"ReportInterval"`
+	Progress int
 }
 
 type TaskConfig struct {
