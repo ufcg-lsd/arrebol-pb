@@ -9,17 +9,18 @@ import (
 )
 
 const ReportIntervalKey = "REPORT_INTERVAL"
+
 // in seconds
 const SLEEPING_TIME = 5
 
 type JobsHandler struct {
-	PendingTasks map[uint][]*storage.Task
+	PendingTasks   map[uint][]*storage.Task
 	ReportInterval int64
-	QM *QueuesManager
-	S *storage.Storage
+	QM             *QueuesManager
+	S              *storage.Storage
 }
 
-func NewJobsHandler(s *storage.Storage, q *QueuesManager) JobsHandler{
+func NewJobsHandler(s *storage.Storage, q *QueuesManager) JobsHandler {
 	reportInterval := os.Getenv(ReportIntervalKey)
 	parsedInterval, err := strconv.ParseInt(reportInterval, 10, 64)
 
@@ -62,11 +63,11 @@ func (j *JobsHandler) extractPendingTasks() {
 			}
 		}
 
-		time.Sleep(SLEEPING_TIME*time.Second)
+		time.Sleep(SLEEPING_TIME * time.Second)
 	}
 }
 
-func(j *JobsHandler) GetPendingTasks(queueId uint) []*storage.Task{
+func (j *JobsHandler) GetPendingTasks(queueId uint) []*storage.Task {
 	return j.PendingTasks[queueId]
 }
 
@@ -92,7 +93,7 @@ func (j *JobsHandler) checkNeverEndingTasks() {
 			tasks := j.S.RetrieveTasksByState(queue.ID, storage.TaskRunning)
 			for _, task := range tasks {
 				var expectedDelay int64 = 30
-				if task.UpdatedAt.Unix() + task.ReportInterval > time.Now().Unix() + expectedDelay {
+				if task.UpdatedAt.Unix()+task.ReportInterval > time.Now().Unix()+expectedDelay {
 					task.State = storage.TaskPending
 					task.Progress = 0
 					j.S.SaveTask(task)
@@ -101,7 +102,7 @@ func (j *JobsHandler) checkNeverEndingTasks() {
 			}
 		}
 
-		time.Sleep(SLEEPING_TIME*time.Second)
+		time.Sleep(SLEEPING_TIME * time.Second)
 	}
 }
 
@@ -116,7 +117,7 @@ func (j *JobsHandler) checkPendingTasks() {
 			}
 		}
 
-		time.Sleep(SLEEPING_TIME*time.Second)
+		time.Sleep(SLEEPING_TIME * time.Second)
 	}
 }
 
@@ -136,7 +137,7 @@ func (j *JobsHandler) jobsStateChanger() {
 			}
 		}
 
-		time.Sleep(SLEEPING_TIME*time.Second)
+		time.Sleep(SLEEPING_TIME * time.Second)
 	}
 }
 

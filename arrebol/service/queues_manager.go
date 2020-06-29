@@ -7,14 +7,14 @@ import (
 
 type QueuesManager struct {
 	Storage *storage.Storage
-	Queues []*storage.Queue
+	Queues  []*storage.Queue
 }
 
-func NewQueuesManager(s *storage.Storage) *QueuesManager{
+func NewQueuesManager(s *storage.Storage) *QueuesManager {
 	return &QueuesManager{Storage: s, Queues: loadQueues(s)}
 }
 
-func loadQueues(s *storage.Storage) []*storage.Queue{
+func loadQueues(s *storage.Storage) []*storage.Queue {
 	queues, err := s.RetrieveQueues()
 
 	if err != nil {
@@ -25,7 +25,7 @@ func loadQueues(s *storage.Storage) []*storage.Queue{
 	return queues
 }
 
-func (q *QueuesManager) GetQueues() []*storage.Queue{
+func (q *QueuesManager) GetQueues() []*storage.Queue {
 	return q.Queues
 }
 
@@ -37,12 +37,12 @@ func (q *QueuesManager) RemoveQueue() {
 
 }
 
-func (q *QueuesManager) GetQueue(queueId uint) (*storage.Queue, error){
+func (q *QueuesManager) GetQueue(queueId uint) (*storage.Queue, error) {
 	queue, err := q.Storage.RetrieveQueue(queueId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return queue,nil
+	return queue, nil
 }
