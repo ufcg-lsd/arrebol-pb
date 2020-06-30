@@ -128,6 +128,7 @@ type TaskState uint8
 
 const (
 	TaskPending TaskState = iota
+	TaskDispatched
 	TaskRunning
 	TaskFinished
 	TaskFailed

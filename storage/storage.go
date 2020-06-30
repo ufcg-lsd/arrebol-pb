@@ -76,7 +76,7 @@ func (s *Storage) RetrieveJobs() ([]*Job, error) {
 	return jobs, err
 }
 
-func (s *Storage) RetrieveTasksByState(queueID uint, state TaskState) []*Task {
+func (s *Storage) RetrieveTasksFromQueueByState(queueID uint, state TaskState) []*Task {
 	var tasksPending []*Task
 	queue, _ := s.RetrieveQueue(queueID)
 
@@ -89,6 +89,16 @@ func (s *Storage) RetrieveTasksByState(queueID uint, state TaskState) []*Task {
 	}
 
 	return tasksPending
+}
+
+func (s *Storage) RetrieveTasksByState(state TaskState) []*Task {
+	var tasks []*Task
+
+	if err := s.driver.Where("state = ?", state).Find(&tasks); err != nil {
+		tasks = []*Task{}
+	}
+
+	return tasks
 }
 
 func (s *Storage) RetrieveTask(taskId uint) (*Task, error){

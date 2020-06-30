@@ -37,12 +37,24 @@ func (j *JobsHandler) Start() {
 	go j.jobsStateChanger()
 }
 
+func getPendingTasksFromQueue(q *storage.Queue) []*storage.Task{
+	var tasks []*storage.Task
+	for _, job := range q.Jobs {
+		for _, task := range job.Tasks {
+			if task.State == storage.TaskPending {
+				tasks = append(tasks, task)
+			}
+		}
+	}
+	return tasks
+}
+
 func (j *JobsHandler) extractPendingTasks() {
 	for {
 		queues := loadQueues(j.S)
 
 		for _, queue := range queues {
-			tasks := j.S.RetrieveTasksByState(queue.ID, storage.TaskPending)
+			tasks := getPendingTasksFromQueue(queue)
 			for _, task := range tasks {
 				// prevent duplicates
 				found := false
@@ -90,7 +102,7 @@ func (j *JobsHandler) checkNeverEndingTasks() {
 		queues := loadQueues(j.S)
 
 		for _, queue := range queues {
-			tasks := j.S.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			tasks := j.S.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
 			for _, task := range tasks {
 				var expectedDelay int64 = 30
 				if task.UpdatedAt.Unix()+task.ReportInterval > time.Now().Unix()+expectedDelay {

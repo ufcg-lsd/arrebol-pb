@@ -38,7 +38,11 @@ func (s *TaskScheduler) feedPendingTasks() {
 	for {
 		if len(s.PendingTasks) <= 5 {
 			tasks := s.Jh.GetPendingTasks(s.QueueID)
-			s.PendingTasks = append(s.PendingTasks, tasks...)
+			for _, task := range tasks {
+				task.State = storage.TaskDispatched
+				s.S.SaveTask(task)
+				s.PendingTasks = append(s.PendingTasks, task)
+			}
 		}
 
 		time.Sleep(10*time.Second)
