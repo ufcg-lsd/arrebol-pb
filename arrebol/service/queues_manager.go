@@ -8,10 +8,22 @@ import (
 type QueuesManager struct {
 	Storage *storage.Storage
 	Queues  []*storage.Queue
+	Schedulers map[uint]TaskScheduler
 }
 
 func NewQueuesManager(s *storage.Storage) *QueuesManager {
-	return &QueuesManager{Storage: s, Queues: loadQueues(s)}
+	queues := loadQueues(s)
+	schedulers := loadSchedulers(queues)
+	return &QueuesManager{Storage: s, Queues: queues, Schedulers: schedulers}
+}
+
+func loadSchedulers(queues []*storage.Queue) map[int]TaskScheduler {
+	var schedulers map[uint]TaskScheduler
+	for _, queue := range queues {
+		scheduler := NewTaskScheduler(queue.ID, queue.SchedulingPolicy)
+		go scheduler.Start()
+		schedulers[queue.ID] = scheduler
+	}
 }
 
 func loadQueues(s *storage.Storage) []*storage.Queue {

@@ -16,11 +16,10 @@ const SLEEPING_TIME = 5
 type JobsHandler struct {
 	PendingTasks   map[uint][]*storage.Task
 	ReportInterval int64
-	QM             *QueuesManager
 	S              *storage.Storage
 }
 
-func NewJobsHandler(s *storage.Storage, q *QueuesManager) JobsHandler {
+func NewJobsHandler(s *storage.Storage) JobsHandler {
 	reportInterval := os.Getenv(ReportIntervalKey)
 	parsedInterval, err := strconv.ParseInt(reportInterval, 10, 64)
 
@@ -28,20 +27,19 @@ func NewJobsHandler(s *storage.Storage, q *QueuesManager) JobsHandler {
 		log.Fatal("Invalid " + ReportIntervalKey + "env variable")
 	}
 
-	return JobsHandler{ReportInterval: parsedInterval, S: s, QM: q}
+	return JobsHandler{ReportInterval: parsedInterval, S: s}
 }
 
 func (j *JobsHandler) Start() {
 	//make them all never dieing
 	go j.extractPendingTasks()
-	go j.checkPendingTasks()
 	go j.checkNeverEndingTasks()
 	go j.jobsStateChanger()
 }
 
 func (j *JobsHandler) extractPendingTasks() {
 	for {
-		queues := j.QM.GetQueues()
+		queues := loadQueues(j.S)
 
 		for _, queue := range queues {
 			tasks := j.S.RetrieveTasksByState(queue.ID, storage.TaskPending)
@@ -68,7 +66,9 @@ func (j *JobsHandler) extractPendingTasks() {
 }
 
 func (j *JobsHandler) GetPendingTasks(queueId uint) []*storage.Task {
-	return j.PendingTasks[queueId]
+	tasks := j.PendingTasks[queueId]
+	j.PendingTasks[queueId] = []*storage.Task{}
+	return tasks
 }
 
 func (j *JobsHandler) HandleReport(task *storage.Task) error {
@@ -87,7 +87,7 @@ func (j *JobsHandler) HandleReport(task *storage.Task) error {
 
 func (j *JobsHandler) checkNeverEndingTasks() {
 	for {
-		queues := j.QM.GetQueues()
+		queues := loadQueues(j.S)
 
 		for _, queue := range queues {
 			tasks := j.S.RetrieveTasksByState(queue.ID, storage.TaskRunning)
@@ -98,21 +98,6 @@ func (j *JobsHandler) checkNeverEndingTasks() {
 					task.Progress = 0
 					j.S.SaveTask(task)
 					j.PendingTasks[queue.ID] = append(j.PendingTasks[queue.ID], task)
-				}
-			}
-		}
-
-		time.Sleep(SLEEPING_TIME * time.Second)
-	}
-}
-
-func (j *JobsHandler) checkPendingTasks() {
-	for {
-		for queueId, tasks := range j.PendingTasks {
-			for i, task := range tasks {
-				task, _ = j.S.RetrieveTask(task.ID)
-				if task.State != storage.TaskPending {
-					j.PendingTasks[queueId] = append(j.PendingTasks[queueId][:i], j.PendingTasks[queueId][i+1:]...)
 				}
 			}
 		}
@@ -157,14 +142,14 @@ func inferJobState(job *storage.Job) storage.JobState {
 
 func isAll(states []storage.TaskState, tasks []*storage.Task) bool {
 	for _, t := range tasks {
-		if !contains(t.State, states) {
+		if !_contains(t.State, states) {
 			return false
 		}
 	}
 	return true
 }
 
-func contains(e storage.TaskState, arr []storage.TaskState) bool {
+func _contains(e storage.TaskState, arr []storage.TaskState) bool {
 	for _, a := range arr {
 		if a == e {
 			return true

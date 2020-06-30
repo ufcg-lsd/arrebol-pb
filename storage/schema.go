@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 )
@@ -81,6 +82,7 @@ type Queue struct {
 	Jobs  []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
 	Workers  []*worker.Worker        `json:"Workers" gorm:"ForeignKey:QueueID"`
 	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+	SchedulingPolicy service.Policy `json:"Policy"`
 }
 
 type ResourceState uint8
