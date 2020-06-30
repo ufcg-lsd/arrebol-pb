@@ -183,8 +183,8 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 				Status:  http.StatusNotFound,
 			})
 		} else {
-			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			pendingTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
 			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(queue.Workers)))
 
 			Write(w, http.StatusOK, &response)
@@ -220,8 +220,8 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		for _, queue := range queues {
-			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			pendingTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
 			workers, _ := a.storage.RetrieveWorkersByQueueID(queue.ID)
 			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(workers)))
 			response = append(response, curQueue)

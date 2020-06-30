@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 )
@@ -81,6 +82,7 @@ type Queue struct {
 	Jobs  []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
 	Workers  []*worker.Worker        `json:"Workers" gorm:"ForeignKey:QueueID"`
 	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+	SchedulingPolicy service.Policy `json:"Policy"`
 }
 
 type ResourceState uint8
@@ -126,6 +128,7 @@ type TaskState uint8
 
 const (
 	TaskPending TaskState = iota
+	TaskDispatched
 	TaskRunning
 	TaskFinished
 	TaskFailed
@@ -142,6 +145,8 @@ type Task struct {
 	Config   []TaskConfig   `json:"Config" gorm:"ForeignKey:TaskID"`
 	Metadata []TaskMetadata `json:"Metadata" gorm:"ForeignKey:TaskID"`
 	Commands []*Command     `json:"Commands" gorm:"ForeignKey:TaskID"`
+	ReportInterval int64 `json:"ReportInterval"`
+	Progress int
 }
 
 type TaskConfig struct {

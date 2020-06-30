@@ -68,7 +68,15 @@ func (s *Storage) RetrieveQueues() ([]*Queue, error) {
 	return queues, err
 }
 
-func (s *Storage) RetrieveTasksByState(queueID uint, state TaskState) []*Task {
+func (s *Storage) RetrieveJobs() ([]*Job, error) {
+	var jobs []*Job
+
+	err := s.driver.Find(&jobs).Error
+
+	return jobs, err
+}
+
+func (s *Storage) RetrieveTasksFromQueueByState(queueID uint, state TaskState) []*Task {
 	var tasksPending []*Task
 	queue, _ := s.RetrieveQueue(queueID)
 
@@ -83,6 +91,23 @@ func (s *Storage) RetrieveTasksByState(queueID uint, state TaskState) []*Task {
 	return tasksPending
 }
 
+func (s *Storage) RetrieveTasksByState(state TaskState) []*Task {
+	var tasks []*Task
+
+	if err := s.driver.Where("state = ?", state).Find(&tasks); err != nil {
+		tasks = []*Task{}
+	}
+
+	return tasks
+}
+
+func (s *Storage) RetrieveTask(taskId uint) (*Task, error){
+	var task Task
+	err := s.driver.First(&task, taskId).Error
+	s.fillTask(&task)
+	return &task, err
+}
+
 func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }
@@ -91,6 +116,12 @@ func (s *Storage) SetJobState(jobID uint, state JobState) {
 	var job Job
 	s.driver.First(&job, jobID)
 	s.driver.Model(&job).Update("State", state)
+}
+
+func (s *Storage) SetTaskState(taskID uint, state TaskState) {
+	var task Job
+	s.driver.First(&task, taskID)
+	s.driver.Model(&task).Update("State", state)
 }
 
 func (s *Storage) SaveTask(task *Task) error {
