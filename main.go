@@ -64,7 +64,10 @@ func main() {
 func startWorkerApi(storage *storage.Storage) {
 	const WorkerApiPort = "8000"
 
-	workerApi := worker.New(storage)
+	j := service.NewJobsHandler(storage)
+	q := service.NewQueuesManager(storage, j)
+
+	workerApi := worker.New(storage, q, j)
 	err := workerApi.Start(WorkerApiPort)
 
 	if err != nil {

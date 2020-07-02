@@ -108,6 +108,14 @@ func (s *Storage) RetrieveTask(taskId uint) (*Task, error){
 	return &task, err
 }
 
+func (s *Storage) RetrieveWorker(workerId string) *worker.Worker{
+	var worker worker.Worker
+	if err := s.driver.First(&worker, workerId).Error; err != nil {
+		return nil
+	}
+	return &worker
+}
+
 func (s *Storage) SaveJob(job *Job) error {
 	return s.driver.Save(&job).Error
 }

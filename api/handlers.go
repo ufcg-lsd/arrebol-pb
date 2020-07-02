@@ -118,29 +118,17 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if queue.ID == 0 {
-		Write(w, http.StatusBadRequest, ErrorResponse{
-			Message: "The queue ID can not be 0",
-			Status: http.StatusBadRequest,
-		})
-	}
-
-	err = a.storage.SaveQueue(&queue)
+	err = a.queuesManager.AddQueue(&queue, a.jobsHandler)
 
 	if err != nil {
 		Write(w, http.StatusInternalServerError, ErrorResponse{
-			Message: "Error while trying to save the new queue",
+			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
-	} else {
-		super := a.arrebol.HireSupervisor(&queue)
-
-		go super.Start()
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, queue.ID)
 	}
+
+	//Todo: check if the queue.ID is set at this point
+	Write(w, http.StatusCreated, map[string]uint{"queue_id": queue.ID})
 }
 
 func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {

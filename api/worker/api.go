@@ -2,6 +2,7 @@ package worker
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/manager"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
@@ -10,21 +11,27 @@ import (
 )
 
 type WorkerApi struct {
-	server  *http.Server
-	manager manager.Manager
-	auth    auth.Authenticator
-	storage *storage.Storage
+	server        *http.Server
+	workerManager manager.Manager
+	auth          auth.Authenticator
+	storage       *storage.Storage
+	queuesManager *service.QueuesManager
+	jobsHandler *service.JobsHandler
 }
 
-func New(storage *storage.Storage) *WorkerApi {
+func New(storage *storage.Storage, q *service.QueuesManager, j *service.JobsHandler) *WorkerApi {
 	return &WorkerApi{
-		storage: storage,
-		auth :   *auth.NewAuth(),
-		manager: *manager.NewManager(storage),
+		storage:       storage,
+		auth :         *auth.NewAuth(),
+		workerManager: *manager.NewManager(storage),
+		queuesManager: q,
+		jobsHandler: j,
 	}
 }
 
 func (a *WorkerApi) Start(port string) error {
+	a.jobsHandler.Start()
+
 	a.server= &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),

@@ -11,6 +11,7 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 const SignatureHeader string = "Signature"
@@ -69,7 +70,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if queueId, err = a.manager.Join(*_worker); err != nil {
+	if queueId, err = a.workerManager.Join(*_worker); err != nil {
 		WriteBadRequest(&w, err.Error())
 		return
 	}
@@ -101,9 +102,9 @@ func (a *WorkerApi) GetTask(w http.ResponseWriter, r *http.Request) {
 	endpoint := "/v1/workers/"+workerId+"/queues/"+queueId +"/tasks"
 
 	if ok, err := auth.CheckSignature([]byte(endpoint), []byte(signature), workerId); !ok || err != nil {
-		api.Write(w, 401, api.ErrorResponse{
+		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: "The signature is not valid",
-			Status:  401,
+			Status:  http.StatusUnauthorized,
 		})
 	}
 
@@ -113,15 +114,32 @@ func (a *WorkerApi) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	parsedToken := token.Token(reqToken)
 	if err = a.auth.Authorize(&parsedToken); err != nil {
-		api.Write(w, 403, api.ErrorResponse{
+		api.Write(w, http.StatusForbidden, api.ErrorResponse{
 			Message: "Authorization error. Invalid token.",
-			Status:  403,
+			Status:  http.StatusForbidden,
 		})
 	}
 
-	
+	worker := a.storage.RetrieveWorker(workerId)
 
+	queueID, err := strconv.Atoi(queueId)
 
+	queueScheduler, err := a.queuesManager.GetQueueScheduler(uint(queueID))
+
+	if err != nil {
+		api.Write(w, http.StatusNotFound, api.ErrorResponse{
+			Message: err.Error(),
+			Status:  404,
+		})
+	}
+
+	task, err := queueScheduler.Schedule(worker)
+
+	if err != nil || task == nil {
+		api.Write(w, http.StatusNoContent, nil)
+	}
+
+	api.Write(w, http.StatusOK, task)
 }
 
 func GetHeader(r *http.Request, key string) (string, error) {

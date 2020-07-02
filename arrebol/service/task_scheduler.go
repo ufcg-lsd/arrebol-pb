@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"time"
 )
@@ -49,7 +50,7 @@ func (s *TaskScheduler) feedPendingTasks() {
 	}
 }
 
-func (s *TaskScheduler) Schedule(worker *Worker) (*storage.Task, error){
+func (s *TaskScheduler) Schedule(worker *worker.Worker) (*storage.Task, error){
 	if len(s.PendingTasks) == 0 {
 		return nil, errors.New("No task available")
 	}

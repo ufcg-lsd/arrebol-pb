@@ -19,7 +19,7 @@ type JobsHandler struct {
 	S              *storage.Storage
 }
 
-func NewJobsHandler(s *storage.Storage) JobsHandler {
+func NewJobsHandler(s *storage.Storage) *JobsHandler {
 	reportInterval := os.Getenv(ReportIntervalKey)
 	parsedInterval, err := strconv.ParseInt(reportInterval, 10, 64)
 
@@ -27,11 +27,10 @@ func NewJobsHandler(s *storage.Storage) JobsHandler {
 		log.Fatal("Invalid " + ReportIntervalKey + "env variable")
 	}
 
-	return JobsHandler{ReportInterval: parsedInterval, S: s}
+	return &JobsHandler{ReportInterval: parsedInterval, S: s}
 }
 
 func (j *JobsHandler) Start() {
-	//make them all never dieing
 	go j.extractPendingTasks()
 	go j.checkNeverEndingTasks()
 	go j.jobsStateChanger()
@@ -40,6 +39,10 @@ func (j *JobsHandler) Start() {
 func getPendingTasksFromQueue(q *storage.Queue) []*storage.Task{
 	var tasks []*storage.Task
 	for _, job := range q.Jobs {
+		if job.State == storage.JobFailed || job.State == storage.JobFinished {
+			continue
+		}
+
 		for _, task := range job.Tasks {
 			if task.State == storage.TaskPending {
 				tasks = append(tasks, task)

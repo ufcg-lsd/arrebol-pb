@@ -30,6 +30,8 @@ type HttpApi struct {
 	storage *storage.Storage
 	server  *http.Server
 	arrebol *service.Dispatcher
+	queuesManager *service.QueuesManager
+	jobsHandler *service.JobsHandler
 }
 
 func New(storage *storage.Storage, arrebol *service.Dispatcher) *HttpApi {

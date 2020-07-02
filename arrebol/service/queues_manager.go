@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 )
@@ -11,16 +12,16 @@ type QueuesManager struct {
 	Schedulers map[uint]TaskScheduler
 }
 
-func NewQueuesManager(s *storage.Storage) *QueuesManager {
+func NewQueuesManager(s *storage.Storage, j *JobsHandler) *QueuesManager {
 	queues := loadQueues(s)
-	schedulers := loadSchedulers(queues)
+	schedulers := loadSchedulers(queues, s, j)
 	return &QueuesManager{Storage: s, Queues: queues, Schedulers: schedulers}
 }
 
-func loadSchedulers(queues []*storage.Queue) map[int]TaskScheduler {
+func loadSchedulers(queues []*storage.Queue, s *storage.Storage, j *JobsHandler) map[int]TaskScheduler {
 	var schedulers map[uint]TaskScheduler
 	for _, queue := range queues {
-		scheduler := NewTaskScheduler(queue.ID, queue.SchedulingPolicy)
+		scheduler := NewTaskScheduler(queue.ID, queue.SchedulingPolicy, j, s)
 		go scheduler.Start()
 		schedulers[queue.ID] = scheduler
 	}
@@ -41,8 +42,19 @@ func (q *QueuesManager) GetQueues() []*storage.Queue {
 	return q.Queues
 }
 
-func (q *QueuesManager) AddQueue() {
+func (q *QueuesManager) AddQueue(queue *storage.Queue, j *JobsHandler) error {
+	err := q.Storage.SaveQueue(queue)
 
+	if err != nil {
+		return err
+	}
+
+	q.Queues = append(q.Queues, queue)
+	scheduler := NewTaskScheduler(queue.ID, queue.SchedulingPolicy, j, q.Storage)
+	go scheduler.Start()
+	q.Schedulers[queue.ID] = scheduler
+
+	return nil
 }
 
 func (q *QueuesManager) RemoveQueue() {
@@ -57,4 +69,14 @@ func (q *QueuesManager) GetQueue(queueId uint) (*storage.Queue, error) {
 	}
 
 	return queue, nil
+}
+
+func (q *QueuesManager) GetQueueScheduler(queueId uint) (*TaskScheduler, error) {
+	queueScheduler, ok := q.Schedulers[queueId]
+
+	if !ok {
+		return nil, errors.New("Queue not found")
+	}
+
+	return &queueScheduler, nil
 }
