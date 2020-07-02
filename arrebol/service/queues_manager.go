@@ -4,6 +4,7 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
+	"strconv"
 )
 
 type QueuesManager struct {
@@ -80,3 +81,23 @@ func (q *QueuesManager) GetQueueScheduler(queueId uint) (*TaskScheduler, error) 
 
 	return &queueScheduler, nil
 }
+
+func (q *QueuesManager) AddJob(queueId uint, j *storage.Job) error {
+	var queue *storage.Queue
+	for _, curr := range q.Queues {
+		if curr.ID == queueId {
+			queue = curr
+			break
+		}
+	}
+
+	if queue == nil {
+		return errors.New("Queue " + string(queueId) + " not found")
+	}
+
+	queue.Jobs = append(queue.Jobs, j)
+
+	return q.Storage.SaveQueue(queue)
+}
+
+

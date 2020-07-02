@@ -116,6 +116,7 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 			Message: "Maybe the body has a wrong shape",
 			Status:  http.StatusBadRequest,
 		})
+		return
 	}
 
 	err = a.queuesManager.AddQueue(&queue, a.jobsHandler)
@@ -125,6 +126,7 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
+		return
 	}
 
 	//Todo: check if the queue.ID is set at this point
@@ -258,29 +260,18 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 	job := extractFromSpec(jobSpec)
 
 	queueID, _ := strconv.Atoi(queueIDStr)
-	queue, err := a.storage.RetrieveQueue(uint(queueID))
+
+	err = a.queuesManager.AddJob(uint(queueID), job)
 
 	if err != nil {
 		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
-	} else {
-		queue.Jobs = append(queue.Jobs, job)
-		err = a.storage.SaveQueue(queue)
-		if err != nil {
-			Write(w, http.StatusInternalServerError, ErrorResponse{
-				Message: err.Error(),
-				Status:  http.StatusInternalServerError,
-			})
-		}
-
-		a.arrebol.AcceptJob(job)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, job.ID)
+		return
 	}
+
+	Write(w, http.StatusCreated, map[string]uint{"job_id":job.ID})
 }
 
 func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
