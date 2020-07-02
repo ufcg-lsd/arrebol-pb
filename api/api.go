@@ -29,15 +29,16 @@ import (
 type HttpApi struct {
 	storage *storage.Storage
 	server  *http.Server
-	arrebol *service.Dispatcher
 	queuesManager *service.QueuesManager
 	jobsHandler *service.JobsHandler
 }
 
-func New(storage *storage.Storage, arrebol *service.Dispatcher) *HttpApi {
+func New(storage *storage.Storage, queuesManager *service.QueuesManager,
+jobsHandler *service.JobsHandler) *HttpApi {
 	return &HttpApi{
 		storage: storage,
-		arrebol: arrebol,
+		queuesManager: queuesManager,
+		jobsHandler: jobsHandler,
 	}
 }
 

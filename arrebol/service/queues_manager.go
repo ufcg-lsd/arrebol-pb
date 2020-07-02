@@ -4,7 +4,6 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
-	"strconv"
 )
 
 type QueuesManager struct {

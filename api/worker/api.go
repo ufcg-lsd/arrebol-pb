@@ -30,8 +30,6 @@ func New(storage *storage.Storage, q *service.QueuesManager, j *service.JobsHand
 }
 
 func (a *WorkerApi) Start(port string) error {
-	a.jobsHandler.Start()
-
 	a.server= &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),

@@ -37,10 +37,12 @@ func main() {
 	s.Setup()
 	defer s.Driver().Close()
 
-	var jobDispatcher = service.NewDispatcher(s)
-	go jobDispatcher.Start()
+	j := service.NewJobsHandler(s)
+	q := service.NewQueuesManager(s, j)
 
-	a := api.New(s, jobDispatcher)
+	j.Start()
+
+	a := api.New(s, q, j)
 
 	// Shutdown gracefully
 	go func() {
@@ -54,18 +56,15 @@ func main() {
 		}
 	}()
 
-	go startWorkerApi(s)
+	go startWorkerApi(s, q, j)
 
 	if err := a.Start(*apiPort); err != nil {
 		log.Fatal(err.Error())
 	}
 }
 
-func startWorkerApi(storage *storage.Storage) {
+func startWorkerApi(storage *storage.Storage, q *service.QueuesManager, j *service.JobsHandler) {
 	const WorkerApiPort = "8000"
-
-	j := service.NewJobsHandler(storage)
-	q := service.NewQueuesManager(storage, j)
 
 	workerApi := worker.New(storage, q, j)
 	err := workerApi.Start(WorkerApiPort)
