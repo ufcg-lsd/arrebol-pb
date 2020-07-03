@@ -9,7 +9,7 @@ import (
 type QueuesManager struct {
 	Storage *storage.Storage
 	Queues  []*storage.Queue
-	Schedulers map[uint]TaskScheduler
+	Schedulers map[uint]Scheduler
 }
 
 func NewQueuesManager(s *storage.Storage, j *JobsHandler) *QueuesManager {
@@ -18,10 +18,10 @@ func NewQueuesManager(s *storage.Storage, j *JobsHandler) *QueuesManager {
 	return &QueuesManager{Storage: s, Queues: queues, Schedulers: schedulers}
 }
 
-func loadSchedulers(queues []*storage.Queue, s *storage.Storage, j *JobsHandler) map[int]TaskScheduler {
-	var schedulers map[uint]TaskScheduler
+func loadSchedulers(queues []*storage.Queue, s *storage.Storage, j *JobsHandler) map[int]Scheduler {
+	var schedulers map[uint]Scheduler
 	for _, queue := range queues {
-		scheduler := NewTaskScheduler(queue.ID, queue.SchedulingPolicy, j, s)
+		scheduler := NewScheduler(queue.ID, queue.SchedulingPolicy, j, s)
 		go scheduler.Start()
 		schedulers[queue.ID] = scheduler
 	}
@@ -50,7 +50,7 @@ func (q *QueuesManager) AddQueue(queue *storage.Queue, j *JobsHandler) error {
 	}
 
 	q.Queues = append(q.Queues, queue)
-	scheduler := NewTaskScheduler(queue.ID, queue.SchedulingPolicy, j, q.Storage)
+	scheduler := NewScheduler(queue.ID, queue.SchedulingPolicy, j, q.Storage)
 	go scheduler.Start()
 	q.Schedulers[queue.ID] = scheduler
 
@@ -71,7 +71,7 @@ func (q *QueuesManager) GetQueue(queueId uint) (*storage.Queue, error) {
 	return queue, nil
 }
 
-func (q *QueuesManager) GetQueueScheduler(queueId uint) (*TaskScheduler, error) {
+func (q *QueuesManager) GetQueueScheduler(queueId uint) (*Scheduler, error) {
 	queueScheduler, ok := q.Schedulers[queueId]
 
 	if !ok {
