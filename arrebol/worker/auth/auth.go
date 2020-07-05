@@ -1,30 +1,86 @@
 package auth
 
 import (
+	"encoding/json"
 	"github.com/google/logger"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/tolerant"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
+	"github.com/ufcg-lsd/arrebol-pb/crypto"
 	"os"
 	"strconv"
 )
 
 const AllowListConfKey = "ALLOW_ALL"
 
-type Authenticator interface {
-	Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error)
+type Authorizer interface {
 	Authorize(token *token.Token) error
 }
 
-func NewAuthenticator() Authenticator {
+type Authenticator interface {
+	Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error)
+}
+
+type Auth struct {
+	Authorizer Authorizer
+	Authenticator Authenticator
+}
+
+func NewAuth() *Auth {
+	return &Auth{
+		Authorizer:    NewAuthorizer(),
+		Authenticator: NewAuthenticator(),
+	}
+}
+
+func NewAuthorizer() Authorizer {
 	allow, err := strconv.ParseBool(os.Getenv(AllowListConfKey))
 
 	if err != nil {
 		logger.Fatalf("Cannot understand the flag: %s", err.Error())
 	}
 	if allow {
-		return allowlist.NewAuthenticator()
+		return allowlist.NewAuthorizer()
 	}
-	return tolerant.NewAuthenticator()
+	return tolerant.NewAuthorizer()
+}
+
+func NewAuthenticator() Authenticator {
+	return &DefaultAuthenticator{}
+}
+
+type DefaultAuthenticator struct {}
+
+func (da *DefaultAuthenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
+	data, err := json.Marshal(worker)
+	if err != nil {
+		return "", err
+	}
+	publicKey, err := crypto.ParsePublicKeyFromPemStr(rawPublicKey)
+	if err != nil {
+		return "", err
+	}
+
+	err = crypto.Verify(publicKey, data, signature)
+	if err != nil {
+		return "", err
+	}
+	if err := key.SavePublicKey(worker.ID.String(), rawPublicKey); err != nil {
+		return "", err
+	}
+
+	return newToken(worker)
+}
+
+func newToken(worker *worker.Worker) (token.Token, error) {
+	var t token.Token
+	var err error
+
+	t, err = token.NewToken(worker)
+	if err != nil {
+		return "", err
+	}
+	return t, nil
 }

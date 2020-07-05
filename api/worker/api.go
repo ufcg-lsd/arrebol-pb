@@ -9,22 +9,22 @@ import (
 	"net/http"
 )
 
-type WorkerApi struct {
+type API struct {
 	server  *http.Server
 	manager manager.Manager
-	auth    auth.Authenticator
+	auth    *auth.Auth
 	storage *storage.Storage
 }
 
-func New(storage *storage.Storage) *WorkerApi {
-	return &WorkerApi{
+func New(storage *storage.Storage) *API {
+	return &API{
 		storage: storage,
-		auth:    *auth.NewAuthenticator(),
+		auth:    auth.NewAuth(),
 		manager: *manager.NewManager(storage),
 	}
 }
 
-func (a *WorkerApi) Start(port string) error {
+func (a *API) Start(port string) error {
 	a.server = &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),
@@ -33,7 +33,7 @@ func (a *WorkerApi) Start(port string) error {
 	return a.server.ListenAndServe()
 }
 
-func (a *WorkerApi) bootRouter() *mux.Router {
+func (a *API) bootRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/v1/workers", a.AddWorker).Methods(http.MethodPost)
 	router.HandleFunc("/v1/workers/publicKey", a.AddPublicKey).Methods(http.MethodPost)
@@ -43,17 +43,17 @@ func (a *WorkerApi) bootRouter() *mux.Router {
 	return router
 }
 
-func (a *WorkerApi) AddPublicKey(w http.ResponseWriter, r *http.Request) {
+func (a *API) AddPublicKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 }
 
-func (a *WorkerApi) GetTask(w http.ResponseWriter, r *http.Request) {
+func (a *API) GetTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 }
 
-func (a *WorkerApi) ReportTask(w http.ResponseWriter, r *http.Request) {
+func (a *API) ReportTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 }

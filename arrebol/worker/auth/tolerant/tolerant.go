@@ -1,19 +1,22 @@
 package tolerant
 
 import (
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/google/logger"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 )
 
-type SimpleAuthenticator struct{}
+type SimpleAuthorizer struct{}
 
-func NewAuthenticator() *SimpleAuthenticator {
-	return &SimpleAuthenticator{}
+func NewAuthorizer() *SimpleAuthorizer {
+	return &SimpleAuthorizer{}
 }
 
-func (sa *SimpleAuthenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
-	return nil, nil
-}
-func (sa *SimpleAuthenticator) Authorize(token *token.Token) error {
-	return nil
+func (sa *SimpleAuthorizer) Authorize(token *token.Token) error {
+	wID, err := token.GetWorkerId()
+	if err != nil {
+		logger.Errorf("Unable to retrieve workerId: %s", err.Error())
+	}
+	logger.Infof("WorkerID %s retrieved with success", wID)
+	// It just this for a simple authorization?
+	return err
 }

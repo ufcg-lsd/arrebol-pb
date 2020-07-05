@@ -19,7 +19,7 @@ type TokenResponse struct {
 	ArrebolWorkerToken string
 }
 
-func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
+func (a *API) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var (
 		err              error
 		signature        string
@@ -50,7 +50,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _token, err = a.auth.Authenticate(string(publicKey), []byte(signature), _worker); err != nil {
+	if _token, err = a.auth.Authenticator.Authenticate(string(publicKey), []byte(signature), _worker); err != nil {
 		log.Println("Unauthorized: " + r.RemoteAddr + " - " + err.Error())
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
@@ -59,7 +59,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = a.auth.Authorize(&_token); err != nil {
+	if err = a.auth.Authorizer.Authorize(&_token); err != nil {
 		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusUnauthorized,
