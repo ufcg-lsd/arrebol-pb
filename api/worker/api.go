@@ -19,13 +19,13 @@ type WorkerApi struct {
 func New(storage *storage.Storage) *WorkerApi {
 	return &WorkerApi{
 		storage: storage,
-		auth :   *auth.NewAuth(),
+		auth:    *auth.NewAuthenticator(),
 		manager: *manager.NewManager(storage),
 	}
 }
 
 func (a *WorkerApi) Start(port string) error {
-	a.server= &http.Server{
+	a.server = &http.Server{
 		Addr:    ":" + port,
 		Handler: a.bootRouter(),
 	}
@@ -57,4 +57,3 @@ func (a *WorkerApi) ReportTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 }
-

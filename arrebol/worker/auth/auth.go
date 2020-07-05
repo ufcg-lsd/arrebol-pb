@@ -1,69 +1,30 @@
 package auth
 
 import (
-	"encoding/json"
-	"errors"
+	"github.com/google/logger"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
-	"github.com/ufcg-lsd/arrebol-pb/crypto"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/tolerant"
+	"os"
+	"strconv"
 )
 
-type Authenticator struct {
-	allowlist allowlist.AllowList
+const AllowListConfKey = "ALLOW_ALL"
+
+type Authenticator interface {
+	Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error)
+	Authorize(token *token.Token) error
 }
 
-func NewAuth() *Authenticator {
-	allowlist := allowlist.NewAllowList()
-	var auth = Authenticator{
-		allowlist: allowlist,
-	}
-	return &auth
-}
+func NewAuthenticator() Authenticator {
+	allow, err := strconv.ParseBool(os.Getenv(AllowListConfKey))
 
-func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
-	data, err := json.Marshal(worker)
 	if err != nil {
-		return "", err
+		logger.Fatalf("Cannot understand the flag: %s", err.Error())
 	}
-	publicKey, err := crypto.ParsePublicKeyFromPemStr(rawPublicKey)
-	if err != nil {
-		return "", err
+	if allow {
+		return allowlist.NewAuthenticator()
 	}
-
-	err = crypto.Verify(publicKey, data, signature)
-	if err != nil {
-		return "", err
-	}
-	if err := key.SavePublicKey(worker.ID.String(), rawPublicKey); err != nil {return "", err}
-
-	return auth.newToken(worker)
-}
-
-func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) {
-	var t token.Token
-	var err error
-
-	t, err = token.NewToken(worker)
-	if err != nil {
-		return "", err
-	}
-	return t, nil
-}
-
-func (auth *Authenticator) Authorize(token *token.Token) error {
-	// TODO authorize token
-	var (
-		err error
-		workerId string
-	)
-	workerId, err = token.GetWorkerId()
-	if err != nil {
-		return errors.New("error getting queueId from token")
-	}
-	if contains := auth.allowlist.Contains(workerId); !contains {
-		return errors.New("The worker [" + workerId + "] is not in the allowlist")
-	}
-	return err
+	return tolerant.NewAuthenticator()
 }

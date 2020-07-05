@@ -21,13 +21,13 @@ type TokenResponse struct {
 
 func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	var (
-		err       error
-		signature string
+		err              error
+		signature        string
 		encodedPublicKey string
-		publicKey []byte
-		_worker   *worker.Worker
-		_token    token.Token
-		queueId   uint
+		publicKey        []byte
+		_worker          *worker.Worker
+		_token           token.Token
+		queueId          uint
 	)
 
 	if signature, err = GetHeader(r, SignatureHeader); err != nil {
@@ -46,7 +46,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(&_worker); err != nil {
-		WriteBadRequest(&w, WrongBodyMsg + ": " + err.Error())
+		WriteBadRequest(&w, WrongBodyMsg+": "+err.Error())
 		return
 	}
 
@@ -85,7 +85,9 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 func GetHeader(r *http.Request, key string) (string, error) {
 	log.Println("Getting header [" + key + "]")
 	value := r.Header.Get(key)
-	if value == "" {return "", errors.New("The header [" + key + "] was not found")}
+	if value == "" {
+		return "", errors.New("The header [" + key + "] was not found")
+	}
 	return value, nil
 }
 

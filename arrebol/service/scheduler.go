@@ -92,7 +92,7 @@ func (s *Scheduler) AddTask(task *storage.Task) {
 }
 
 type AllocationPlan struct {
-	task *storage.Task
+	task   *storage.Task
 	worker *Worker
 }
 
@@ -106,7 +106,7 @@ func (a *AllocationPlan) execute() {
 // generating a new resource allocation plan to execute the task
 func (s *Scheduler) inferPlans() {
 	for {
-		task := <- s.pendingTasks
+		task := <-s.pendingTasks
 		log.Printf("Planning to run task [%d]", task.ID)
 
 		plan := s.inferPlanForTask(task)
@@ -141,8 +141,7 @@ func (s *Scheduler) makePlan(w *Worker, t *storage.Task) *AllocationPlan {
 	w.state = Busy
 	// TODO Change task state to pending or queued
 	return &AllocationPlan{
-		task: t,
+		task:   t,
 		worker: w,
 	}
 }
-

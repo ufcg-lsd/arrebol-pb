@@ -12,7 +12,9 @@ const (
 
 func SavePublicKey(workerId, content string) error {
 	publicKey, err := crypto.ParsePublicKeyFromPemStr(content)
-	if err != nil {return err}
+	if err != nil {
+		return err
+	}
 	path := os.Getenv(KeysPath) + "/" + workerId + ".pub"
 	return crypto.SavePublicKey(path, publicKey)
 }

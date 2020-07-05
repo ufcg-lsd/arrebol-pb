@@ -8,9 +8,9 @@ import (
 )
 
 type Supervisor struct {
-	queue            *storage.Queue
-	scheduler        *Scheduler
-	mux              sync.Mutex
+	queue     *storage.Queue
+	scheduler *Scheduler
+	mux       sync.Mutex
 }
 
 func NewSupervisor(queue *storage.Queue) *Supervisor {

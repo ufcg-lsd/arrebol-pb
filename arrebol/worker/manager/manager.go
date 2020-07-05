@@ -13,7 +13,7 @@ type Manager struct {
 
 func NewManager(storage *storage.Storage) *Manager {
 	return &Manager{
-		storage:storage,
+		storage: storage,
 	}
 }
 

@@ -17,8 +17,8 @@ import (
 )
 
 type ContainerConfig struct {
-	Name string
-	Image string
+	Name   string
+	Image  string
 	Mounts []mount.Mount
 }
 
@@ -31,7 +31,7 @@ func NewDockerClient(host string) *client.Client {
 }
 
 func ListContainer(cli *client.Client) {
-	ctns, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All:true})
+	ctns, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,8 +48,8 @@ func CreateContainer(cli *client.Client, config ContainerConfig) (string, error)
 	}
 
 	dconfig := container.Config{
-		Image:   config.Image,
-		Tty:     true,
+		Image: config.Image,
+		Tty:   true,
 	}
 
 	b, err := cli.ContainerCreate(ctx, &dconfig, &hostConfig, nil, config.Name)
@@ -97,7 +97,7 @@ func Copy(cli *client.Client, id, src, dest string) error {
 	return Exec(cli, id, cmd)
 }
 
-func Exec(cli *client.Client, id, cmd string)  error {
+func Exec(cli *client.Client, id, cmd string) error {
 	log.Printf("Executing command [%s] on container [%s]", cmd, id)
 	config := types.ExecConfig{
 		Cmd: []string{"/bin/bash", "-c", cmd},
@@ -109,13 +109,13 @@ func Exec(cli *client.Client, id, cmd string)  error {
 func Cat(cli *client.Client, id, path string) ([]byte, error) {
 	log.Printf("Getting content of file [%s]", path)
 	config := types.ExecConfig{
-		Tty:true,
+		Tty:          true,
 		AttachStderr: true,
 		AttachStdout: true,
-		Cmd:[]string{"/bin/bash", "-c", "cat " + path},
+		Cmd:          []string{"/bin/bash", "-c", "cat " + path},
 	}
 	rid, _ := cli.ContainerExecCreate(context.Background(), id, config)
-	hijack, _ := cli.ContainerExecAttach(context.Background(), rid.ID, types.ExecConfig{Tty: true,})
+	hijack, _ := cli.ContainerExecAttach(context.Background(), rid.ID, types.ExecConfig{Tty: true})
 	output := read(hijack.Conn)
 	return output, nil
 }
@@ -123,11 +123,13 @@ func Cat(cli *client.Client, id, path string) ([]byte, error) {
 func read(conn net.Conn) []byte {
 	result := make([]byte, 0)
 	b := make([]byte, 10)
-	for ; ; {
+	for {
 		n, _ := conn.Read(b)
 		result = append(result, b...)
-		if n < len(b) {break}
-		b = make([]byte, 2 * len(b))
+		if n < len(b) {
+			break
+		}
+		b = make([]byte, 2*len(b))
 	}
 	return result
 }
@@ -137,7 +139,7 @@ func Pull(cli *client.Client, image string) (io.ReadCloser, error) {
 	return reader, err
 }
 
-func CheckImage(cli *client.Client, image string) (exist bool, err error)  {
+func CheckImage(cli *client.Client, image string) (exist bool, err error) {
 	exist = false
 	_, _, err = cli.ImageInspectWithRaw(context.Background(), image)
 	if err == nil {

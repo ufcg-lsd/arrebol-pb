@@ -121,7 +121,7 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	if queue.ID == 0 {
 		Write(w, http.StatusBadRequest, ErrorResponse{
 			Message: "The queue ID can not be 0",
-			Status: http.StatusBadRequest,
+			Status:  http.StatusBadRequest,
 		})
 	}
 
@@ -403,8 +403,7 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	//   '200':
 	//     description: The system version
 	//     type: string
-	Write(w, http.StatusOK, Version{Tag:
-                                  os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
+	Write(w, http.StatusOK, Version{Tag: os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
 }
 
 func (a *HttpApi) GetPublicKey(w http.ResponseWriter, r *http.Request) {
@@ -497,7 +496,7 @@ func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uin
 		PendingTasks: pendingTasks,
 		RunningTasks: runningTasks,
 		Nodes:        uint(len(queue.Nodes)),
-		Workers: workers,
+		Workers:      workers,
 	}
 }
 
