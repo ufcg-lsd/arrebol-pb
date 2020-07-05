@@ -2,9 +2,10 @@ package allowlist
 
 import (
 	"bufio"
+	"fmt"
+	"github.com/google/logger"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
-	"log"
 	"os"
 )
 
@@ -30,20 +31,28 @@ func (auth *Authorizer) Authorize(token *token.Token) error {
 		err      error
 		workerId string
 	)
-	workerId, err = token.GetWorkerId()
-	if err != nil {
-		return errors.New("error getting queueId from token")
+
+	if token.IsValid() {
+		workerId, err = token.GetWorkerId()
+		if err != nil {
+			msg := fmt.Sprintf("Error getting the workerID from token %v\n", token.String())
+			logger.Errorf(msg)
+			return errors.New(msg)
+		}
+		if contains := auth.AllowList.contains(workerId); !contains {
+			msg := fmt.Sprintf("The worker [%s] is not in the allowlist\n", workerId)
+			logger.Errorf(msg)
+			return errors.New(msg)
+		}
 	}
-	if contains := auth.AllowList.contains(workerId); !contains {
-		return errors.New("The worker [" + workerId + "] is not in the allowlist")
-	}
+	logger.Infof("Token [%s] authorized\n", token.String())
 	return err
 }
 
 func newAllowList() allowList {
 	list, err := loadSourceFile()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	return allowList{list: list}
 }

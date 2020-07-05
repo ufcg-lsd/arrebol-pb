@@ -5,18 +5,18 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 )
 
-type SimpleAuthorizer struct{}
+type Authorizer struct{}
 
-func NewAuthorizer() *SimpleAuthorizer {
-	return &SimpleAuthorizer{}
+func NewAuthorizer() *Authorizer {
+	return &Authorizer{}
 }
 
-func (sa *SimpleAuthorizer) Authorize(token *token.Token) error {
+func (sa *Authorizer) Authorize(token *token.Token) error {
 	wID, err := token.GetWorkerId()
 	if err != nil {
-		logger.Errorf("Unable to retrieve workerId: %s", err.Error())
+		logger.Errorf("Unable to retrieve workerId: %s\n", err.Error())
 	}
-	logger.Infof("WorkerID %s retrieved with success", wID)
+	logger.Infof("WorkerID %s retrieved with success\n", wID)
 	// It just this for a simple authorization?
 	return err
 }
