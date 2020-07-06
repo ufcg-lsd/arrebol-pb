@@ -2,15 +2,16 @@ package auth
 
 import (
 	"encoding/json"
-	"github.com/google/logger"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/tolerant"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
-	"github.com/ufcg-lsd/arrebol-pb/crypto"
 	"os"
 	"strconv"
+
+	"github.com/google/logger"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/policy/allowlist"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/policy/tolerant"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
+	"github.com/ufcg-lsd/arrebol-pb/crypto"
 )
 
 const AllowListConfKey = "ALLOW_ALL"
@@ -24,7 +25,7 @@ type Authenticator interface {
 }
 
 type Auth struct {
-	Authorizer Authorizer
+	Authorizer    Authorizer
 	Authenticator Authenticator
 }
 
@@ -51,7 +52,7 @@ func NewAuthenticator() Authenticator {
 	return &DefaultAuthenticator{}
 }
 
-type DefaultAuthenticator struct {}
+type DefaultAuthenticator struct{}
 
 func (da *DefaultAuthenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
 	data, err := json.Marshal(worker)

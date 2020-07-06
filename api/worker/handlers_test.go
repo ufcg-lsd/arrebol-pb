@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"github.com/joho/godotenv"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/policy/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/key"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
