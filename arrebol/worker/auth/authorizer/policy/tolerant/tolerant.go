@@ -9,11 +9,12 @@ import (
 
 type Authorizer struct{}
 
-func NewAuthorizer() *Authorizer {
+func GenerateAuthorizer() *Authorizer{
+	logger.Infof("Tolerant Authorizer generated")
 	return &Authorizer{}
 }
 
-func (sa *Authorizer) Authorize(token *token.Token) (err error) {
+func (a *Authorizer) Authorize(token *token.Token) (err error) {
 	if token.IsValid() {
 		wID, err := token.GetWorkerId()
 		if err != nil {

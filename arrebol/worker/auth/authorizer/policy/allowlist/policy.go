@@ -12,7 +12,8 @@ type Authorizer struct {
 	AllowList allowList
 }
 
-func NewAuthorizer() *Authorizer {
+func GenerateAuthorizer() *Authorizer {
+	logger.Infof("Allowlist Authorizer generated")
 	return &Authorizer{AllowList: newAllowList()}
 }
 
