@@ -9,7 +9,7 @@ import (
 
 type Authorizer struct{}
 
-func GenerateAuthorizer() *Authorizer{
+func GenerateAuthorizer() *Authorizer {
 	logger.Infof("Tolerant Authorizer generated")
 	return &Authorizer{}
 }

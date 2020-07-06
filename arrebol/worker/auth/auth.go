@@ -17,7 +17,7 @@ func NewAuth() *Auth {
 	}
 }
 
-func NewAuthorizer () authorizer.Authorizer {
+func NewAuthorizer() authorizer.Authorizer {
 	return authorizer.NewAuthorizer()
 }
 
