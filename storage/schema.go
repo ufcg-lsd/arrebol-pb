@@ -14,14 +14,14 @@ func (s *Storage) DropTablesIfExist() *gorm.DB {
 
 func (s *Storage) CreateTables() {
 	var tables = map[string]interface{}{
-		"commands": &Command{},
-		"task_configs" : &TaskConfig{},
-		"task_metadata" : &TaskMetadata{},
-		"tasks" : &Task{},
-		"jobs": &Job{},
+		"commands":       &Command{},
+		"task_configs":   &TaskConfig{},
+		"task_metadata":  &TaskMetadata{},
+		"tasks":          &Task{},
+		"jobs":           &Job{},
 		"resource_nodes": &ResourceNode{},
-		"queues": &Queue{},
-		"workers": &worker.Worker{},
+		"queues":         &Queue{},
+		"workers":        &worker.Worker{},
 	}
 
 	for _, v := range tables {
@@ -33,7 +33,7 @@ func (s *Storage) CreateTables() {
 	}
 }
 
-func (s *Storage) CreateTable(t interface{}) (error, string){
+func (s *Storage) CreateTable(t interface{}) (error, string) {
 	clone := s.driver.CreateTable(t)
 
 	if clone.Error != nil {
@@ -77,10 +77,10 @@ func (s *Storage) CreateSchema() {
 // swagger:model Queue
 type Queue struct {
 	gorm.Model
-	Name  string          `json:"Name"`
-	Jobs  []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
-	Workers  []*worker.Worker        `json:"Workers" gorm:"ForeignKey:QueueID"`
-	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+	Name    string           `json:"Name"`
+	Jobs    []*Job           `json:"Jobs" gorm:"ForeignKey:QueueID"`
+	Workers []*worker.Worker `json:"Workers" gorm:"ForeignKey:QueueID"`
+	Nodes   []*ResourceNode  `json:"Nodes" gorm:"ForeignKey:QueueID"`
 }
 
 type ResourceState uint8

@@ -23,9 +23,9 @@ const (
 func NewWorker(driver2 driver.Driver) *Worker {
 	id, _ := uuid.GenerateUUID()
 	return &Worker{
-		id: id,
+		id:     id,
 		driver: driver2,
-		state: Sleeping,
+		state:  Sleeping,
 	}
 }
 

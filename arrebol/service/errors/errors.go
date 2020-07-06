@@ -18,13 +18,13 @@ const (
 )
 
 type customError struct {
-	errorType ErrorType
+	errorType     ErrorType
 	originalError error
-	context errorContext
+	context       errorContext
 }
 
 type errorContext struct {
-	Field string
+	Field   string
 	Message string
 }
 
@@ -78,9 +78,9 @@ func Wrapf(err error, msg string, args ...interface{}) error {
 	wrappedError := errors.Wrapf(err, msg, args...)
 	if customErr, ok := err.(customError); ok {
 		return customError{
-			errorType: customErr.errorType,
+			errorType:     customErr.errorType,
 			originalError: wrappedError,
-			context: customErr.context,
+			context:       customErr.context,
 		}
 	}
 
@@ -100,7 +100,7 @@ func AddErrorContext(err error, field, message string) error {
 // GetErrorContext returns the error context
 func GetErrorContext(err error) map[string]string {
 	emptyContext := errorContext{}
-	if customErr, ok := err.(customError); ok || customErr.context != emptyContext  {
+	if customErr, ok := err.(customError); ok || customErr.context != emptyContext {
 
 		return map[string]string{"field": customErr.context.Field, "message": customErr.context.Message}
 	}

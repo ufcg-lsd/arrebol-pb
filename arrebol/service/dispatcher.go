@@ -21,7 +21,7 @@ func NewDispatcher(db *storage.Storage) *Dispatcher {
 
 func (d *Dispatcher) HireSupervisor(queue *storage.Queue) *Supervisor {
 	d.mux.Lock()
-	defer d.mux.Unlock()  // must be called after the return
+	defer d.mux.Unlock() // must be called after the return
 
 	log.Printf("Hiring new supervisor to the queue %d", queue.ID)
 
@@ -58,5 +58,3 @@ func (d *Dispatcher) AcceptJob(job *storage.Job) {
 	job.State = storage.JobQueued
 	d.jobsAccepted <- job
 }
-
-

@@ -20,7 +20,7 @@ func TestSaveQueue(t *testing.T) {
 		QueueID: 1,
 		Label:   "Some Label",
 		State:   0,
-		Tasks: tasks,
+		Tasks:   tasks,
 	})
 
 	if err != nil {

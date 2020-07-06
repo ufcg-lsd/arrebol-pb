@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	FailExitCode = 1
+	FailExitCode    = 1
 	SuccessExitCode = 0
 )
 
@@ -16,7 +16,7 @@ type Driver interface {
 	Execute(t *storage.Task) error
 }
 
-type RawDriver struct {}
+type RawDriver struct{}
 
 func (r *RawDriver) Execute(task *storage.Task) error {
 	flawed := false

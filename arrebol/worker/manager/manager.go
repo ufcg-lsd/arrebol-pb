@@ -13,7 +13,7 @@ type Manager struct {
 
 func NewManager(storage *storage.Storage) *Manager {
 	return &Manager{
-		storage:storage,
+		storage: storage,
 	}
 }
 
@@ -32,11 +32,11 @@ func (m *Manager) Join(w worker.Worker) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	log.Println("Worker [" + w.ID + "] has been assigned to queue [" + strconv.Itoa(int(queueId)) + "]")
+	log.Println("Worker [" + w.ID.String() + "] has been assigned to queue [" + strconv.Itoa(int(queueId)) + "]")
 	return queueId, nil
 }
 
 func (m *Manager) selectQueue(w worker.Worker) uint {
-	log.Println("Selecting a queue for worker [" + w.ID + "]")
+	log.Println("Selecting a queue for worker [" + w.ID.String() + "]")
 	return 1
 }

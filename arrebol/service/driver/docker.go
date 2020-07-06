@@ -15,31 +15,30 @@ import (
 )
 
 const (
-	TaskScriptExecutorFileName = "task-script-executor.sh"
-	TaskScriptExecutorPath = "./resources/" + TaskScriptExecutorFileName
+	TaskScriptExecutorFileName  = "task-script-executor.sh"
+	TaskScriptExecutorPath      = "./resources/" + TaskScriptExecutorFileName
 	RunTaskScriptCommandPattern = "/bin/bash %s -d -tsf=%s"
-	PoolingPeriodTime = 2 * time.Second
-	DockerImagePropertyKey = "docker_image"
-	DefaultWorkerDockerImage = "wesleymonte/simple-worker"
+	PoolingPeriodTime           = 2 * time.Second
+	DockerImagePropertyKey      = "docker_image"
+	DefaultWorkerDockerImage    = "wesleymonte/simple-worker"
 )
 
 const (
-	PullImageErrorMsg       		string = "Error while pulling docker image [%s]"
-	CreateContainerErrorMsg 		string = "Error while creating container [%s]"
-	StartContainerErrorMsg  		string = "Error while starting container [%s]"
-	CopyTaskScriptErrorMsg  		string = "Error while driver [%s] copying task script executor [%s]"
-	StopContainerErrorMsg   		string = "Error while stopping container [%s]"
-	RemoveContainerErrorMsg 		string = "Error while removing container [%s]"
-	SendTaskScriptFileErrorMsg 		string = "Error while send task script file [%s]"
-	RunTaskScriptExecutorErrorMsg 	string = "Error while running the " + TaskScriptExecutorFileName
-	GettingExitCodesErrorMsg 		string = "Error while getting content of exit codes file [%s]"
-	TrackTaskErrorMsg				string = "Error while track task execution [%s]"
+	PullImageErrorMsg             string = "Error while pulling docker image [%s]"
+	CreateContainerErrorMsg       string = "Error while creating container [%s]"
+	StartContainerErrorMsg        string = "Error while starting container [%s]"
+	CopyTaskScriptErrorMsg        string = "Error while driver [%s] copying task script executor [%s]"
+	StopContainerErrorMsg         string = "Error while stopping container [%s]"
+	RemoveContainerErrorMsg       string = "Error while removing container [%s]"
+	SendTaskScriptFileErrorMsg    string = "Error while send task script file [%s]"
+	RunTaskScriptExecutorErrorMsg string = "Error while running the " + TaskScriptExecutorFileName
+	GettingExitCodesErrorMsg      string = "Error while getting content of exit codes file [%s]"
+	TrackTaskErrorMsg             string = "Error while track task execution [%s]"
 )
 
-
 type DockerDriver struct {
-	Id      string
-	Cli     client.Client
+	Id  string
+	Cli client.Client
 }
 
 func (d *DockerDriver) Execute(task *storage.Task) error {
@@ -78,7 +77,7 @@ func (d *DockerDriver) initiate(config docker.ContainerConfig) error {
 			return errors.Wrapf(err, PullImageErrorMsg, config.Image)
 		}
 	}
-	cid, err := docker.CreateContainer(&d.Cli, config);
+	cid, err := docker.CreateContainer(&d.Cli, config)
 	if err != nil {
 		return errors.Wrapf(err, CreateContainerErrorMsg, config.Name)
 	}
@@ -86,7 +85,7 @@ func (d *DockerDriver) initiate(config docker.ContainerConfig) error {
 	if err != nil {
 		return errors.Wrapf(err, StartContainerErrorMsg, config.Name)
 	}
-	err = docker.Copy(&d.Cli, cid, TaskScriptExecutorPath, "/tmp/" + TaskScriptExecutorFileName)
+	err = docker.Copy(&d.Cli, cid, TaskScriptExecutorPath, "/tmp/"+TaskScriptExecutorFileName)
 	if err != nil {
 		return errors.Wrapf(err, CopyTaskScriptErrorMsg, d.Id, TaskScriptExecutorFileName)
 	}
@@ -108,7 +107,7 @@ func (d *DockerDriver) stop() error {
 func (d *DockerDriver) send(task *storage.Task) error {
 	taskScriptFileName := "task-id.ts"
 	rawCmdsStr := task.GetRawCommands()
-	err := docker.Write(&d.Cli, d.Id, rawCmdsStr, "/tmp/" + taskScriptFileName)
+	err := docker.Write(&d.Cli, d.Id, rawCmdsStr, "/tmp/"+taskScriptFileName)
 	if err != nil {
 		err = errors.Wrapf(err, SendTaskScriptFileErrorMsg, taskScriptFileName)
 	}
@@ -117,7 +116,7 @@ func (d *DockerDriver) send(task *storage.Task) error {
 
 func (d *DockerDriver) run(taskId string) error {
 	taskScriptFilePath := "/tmp/task-id.ts"
-	cmd := fmt.Sprintf(RunTaskScriptCommandPattern, "/tmp/" + TaskScriptExecutorFileName, taskScriptFilePath)
+	cmd := fmt.Sprintf(RunTaskScriptCommandPattern, "/tmp/"+TaskScriptExecutorFileName, taskScriptFilePath)
 	err := docker.Exec(&d.Cli, d.Id, cmd)
 	if err != nil {
 		err = errors.Wrap(err, RunTaskScriptExecutorErrorMsg)
@@ -127,7 +126,7 @@ func (d *DockerDriver) run(taskId string) error {
 
 func (d *DockerDriver) track(task *storage.Task) error {
 	i := 0
-	for ; i < len(task.Commands);  {
+	for i < len(task.Commands) {
 		ec, err := d.getExitCodes("task-id")
 		if err != nil {
 			return errors.Wrapf(err, TrackTaskErrorMsg, "task-id")
@@ -157,7 +156,7 @@ func (d *DockerDriver) getExitCodes(taskId string) ([]int8, error) {
 
 func (d *DockerDriver) syncCommands(commands []*storage.Command, exitCodes []int8, startIndex int) int {
 	i := startIndex
-	for ; i < len(exitCodes) ; i++ {
+	for ; i < len(exitCodes); i++ {
 		ec := exitCodes[i]
 		if ec == 0 {
 			commands[i].State = storage.CmdFinished

@@ -13,22 +13,22 @@ import (
 const (
 	ArrebolPrivKeyPath = "ARREBOL_PRIV_KEY_PATH"
 	ArrebolPubKeyPath  = "ARREBOL_PUB_KEY_PATH"
-	ExpirationTime = 10 * time.Minute
+	ExpirationTime     = 10 * time.Minute
 )
 
 type Token string
 
 type Claims struct {
-	QueueId uint `json:"QueueId"`
+	QueueId  uint   `json:"QueueId"`
 	WorkerId string `json:"WorkerId"`
 	jwt.StandardClaims
 }
 
-func NewToken(worker *worker.Worker) (Token, error){
+func NewToken(worker *worker.Worker) (Token, error) {
 	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &Claims{
-		QueueId:        worker.QueueID,
-		WorkerId:       worker.ID,
+		QueueId:  worker.QueueID,
+		WorkerId: worker.ID.String(),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
