@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
+	"errors"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 )

@@ -1,27 +1,24 @@
 package service
 
 import (
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/service/errors"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"errors"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"time"
 )
 
 type Scheduler struct {
-	P Policy
-	QueueID uint
+	P            storage.Policy
+	QueueID      uint
 	PendingTasks []*storage.Task
-	Jh *JobsHandler
-	S *storage.Storage
+	Jh           *JobsHandler
+	S            *storage.Storage
 }
 
-type Policy uint8
-
 const (
-	FIFO Policy = iota
+	FIFO storage.Policy = iota
 )
 
-func NewScheduler(queueId uint, p Policy, j *JobsHandler, s *storage.Storage) Scheduler {
+func NewScheduler(queueId uint, p storage.Policy, j *JobsHandler, s *storage.Storage) Scheduler {
 	return Scheduler{
 		QueueID: queueId,
 		P: p,
@@ -37,6 +34,13 @@ func (s *Scheduler) Start() {
 
 func (s *Scheduler) feedPendingTasks() {
 	for {
+		//remove the already scheduled tasks
+		for i, task := range s.PendingTasks {
+			if task.State != storage.TaskPending {
+				s.PendingTasks = append(s.PendingTasks[:i], s.PendingTasks[i+1:]...)
+			}
+		}
+
 		if len(s.PendingTasks) <= 5 {
 			tasks := s.Jh.GetPendingTasks(s.QueueID)
 			for _, task := range tasks {
@@ -50,7 +54,7 @@ func (s *Scheduler) feedPendingTasks() {
 	}
 }
 
-func (s *Scheduler) Schedule(worker *worker.Worker) (*storage.Task, error){
+func (s *Scheduler) Schedule(worker *storage.Worker) (*storage.Task, error){
 	if len(s.PendingTasks) == 0 {
 		return nil, errors.New("No task available")
 	}

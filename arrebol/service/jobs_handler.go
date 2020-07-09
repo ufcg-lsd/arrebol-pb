@@ -17,6 +17,7 @@ type JobsHandler struct {
 	PendingTasks   map[uint][]*storage.Task
 	ReportInterval int64
 	S              *storage.Storage
+	opChan chan Operation
 }
 
 func NewJobsHandler(s *storage.Storage) *JobsHandler {
@@ -30,10 +31,59 @@ func NewJobsHandler(s *storage.Storage) *JobsHandler {
 	return &JobsHandler{ReportInterval: parsedInterval, S: s}
 }
 
+type OperationType string
+
+const (
+	OperationAdd OperationType = "ADD"
+	OperationRemove OperationType = "REMOVE"
+)
+
+
 func (j *JobsHandler) Start() {
+	//The agregateTasks func receives messages through the opChan
+	//and modify the pendingTasks according to the message content.
+	//This avoid some concurrency issues that would happen if the
+	//other goroutines modified the pendingTasks by their own.
 	go j.extractPendingTasks()
 	go j.checkNeverEndingTasks()
+	go j.agregateTasks()
 	go j.jobsStateChanger()
+}
+
+type OperationValue struct {
+	qid uint
+	t []*storage.Task
+}
+
+type Operation struct {
+	Type OperationType
+	v OperationValue
+}
+
+func (j *JobsHandler) agregateTasks() {
+	for {
+		select {
+		case op := <-j.opChan:
+			switch op.Type {
+			case OperationAdd:
+				j.PendingTasks[op.v.qid] = append(j.PendingTasks[op.v.qid], op.v.t...)
+			case OperationRemove:
+				for _, t := range op.v.t {
+					j.PendingTasks[op.v.qid] = removeTask(t, j.PendingTasks[op.v.qid])
+				}
+			}
+		}
+	}
+}
+
+func removeTask(task *storage.Task, tasks []*storage.Task) []*storage.Task{
+	returningTasks := []*storage.Task{}
+	for i, t := range tasks {
+		if t == task {
+			returningTasks = append(tasks[:i], tasks[i+1])
+		}
+	}
+	return returningTasks
 }
 
 func getPendingTasksFromQueue(q *storage.Queue) []*storage.Task{
@@ -58,6 +108,7 @@ func (j *JobsHandler) extractPendingTasks() {
 
 		for _, queue := range queues {
 			tasks := getPendingTasksFromQueue(queue)
+			tasksToAdd := []*storage.Task{}
 			for _, task := range tasks {
 				// prevent duplicates
 				found := false
@@ -71,8 +122,13 @@ func (j *JobsHandler) extractPendingTasks() {
 				if !found {
 					task.ReportInterval = j.ReportInterval
 					j.S.SaveTask(task)
-					j.PendingTasks[queue.ID] = append(j.PendingTasks[queue.ID], task)
+					tasksToAdd = append(tasksToAdd, task)
 				}
+			}
+
+			j.opChan <- Operation{
+				Type: OperationAdd,
+				v: OperationValue{queue.ID, tasksToAdd},
 			}
 		}
 
@@ -81,8 +137,17 @@ func (j *JobsHandler) extractPendingTasks() {
 }
 
 func (j *JobsHandler) GetPendingTasks(queueId uint) []*storage.Task {
-	tasks := j.PendingTasks[queueId]
-	j.PendingTasks[queueId] = []*storage.Task{}
+	tasks, ok := j.PendingTasks[queueId]
+
+	if !ok {
+		return []*storage.Task{}
+	}
+
+	j.opChan <- Operation{
+		Type: OperationRemove,
+		v:    OperationValue{queueId, tasks},
+	}
+
 	return tasks
 }
 
@@ -112,7 +177,6 @@ func (j *JobsHandler) checkNeverEndingTasks() {
 					task.State = storage.TaskPending
 					task.Progress = 0
 					j.S.SaveTask(task)
-					j.PendingTasks[queue.ID] = append(j.PendingTasks[queue.ID], task)
 				}
 			}
 		}

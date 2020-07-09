@@ -3,10 +3,10 @@ package auth
 import (
 	"encoding/json"
 	"errors"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/allowlist"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"os"
 )
 
@@ -24,7 +24,7 @@ func NewAuth() *Authenticator {
 	return &auth
 }
 
-func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, worker *worker.Worker) (token.Token, error) {
+func (auth *Authenticator) Authenticate(rawPublicKey string, signature []byte, worker *storage.Worker) (token.Token, error) {
 	data, err := json.Marshal(worker)
 	if err != nil {
 		return "", err
@@ -65,7 +65,7 @@ func saveWorkerKey(workerId, content string) error {
 	return crypto.SavePublicKey(path, publicKey)
 }
 
-func (auth *Authenticator) newToken(worker *worker.Worker) (token.Token, error) {
+func (auth *Authenticator) newToken(worker *storage.Worker) (token.Token, error) {
 	var t token.Token
 	var err error
 

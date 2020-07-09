@@ -6,9 +6,9 @@ import (
 	"errors"
 	"github.com/gorilla/mux"
 	"github.com/ufcg-lsd/arrebol-pb/api"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,7 +28,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		signature string
 		encodedPublicKey string
 		publicKey []byte
-		_worker   *worker.Worker
+		_worker   *storage.Worker
 		_token    token.Token
 		queueId   uint
 	)

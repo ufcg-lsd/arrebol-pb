@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"log"
 )
 
@@ -108,8 +107,8 @@ func (s *Storage) RetrieveTask(taskId uint) (*Task, error){
 	return &task, err
 }
 
-func (s *Storage) RetrieveWorker(workerId string) *worker.Worker{
-	var worker worker.Worker
+func (s *Storage) RetrieveWorker(workerId string) *Worker{
+	var worker Worker
 	if err := s.driver.First(&worker, workerId).Error; err != nil {
 		return nil
 	}
@@ -194,8 +193,8 @@ func (s *Storage) GetDefaultQueue() (*Queue, error) {
 	return &queue, nil
 }
 
-func (s *Storage) RetrieveWorkersByQueueID(queueID uint) ([]*worker.Worker, error) {
-	var workers []*worker.Worker
+func (s *Storage) RetrieveWorkersByQueueID(queueID uint) ([]*Worker, error) {
+	var workers []*Worker
 
 	log.Printf("Retrieving workers of queue %d", queueID)
 	err := s.driver.Where("queue_id = ?", queueID).Find(&workers).Error
