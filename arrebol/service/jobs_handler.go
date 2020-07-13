@@ -28,7 +28,8 @@ func NewJobsHandler(s *storage.Storage) *JobsHandler {
 		log.Fatal("Invalid " + ReportIntervalKey + "env variable")
 	}
 
-	return &JobsHandler{ReportInterval: parsedInterval, S: s}
+	return &JobsHandler{ReportInterval: parsedInterval, S: s,
+		opChan: make(chan Operation, 1000), PendingTasks: map[uint][]*storage.Task{}}
 }
 
 type OperationType string
@@ -40,13 +41,14 @@ const (
 
 
 func (j *JobsHandler) Start() {
-	//The agregateTasks func receives messages through the opChan
+	log.Println("Starting jobs handler")
+	//The aggregateTasks func receives messages through the opChan
 	//and modify the pendingTasks according to the message content.
 	//This avoid some concurrency issues that would happen if the
 	//other goroutines modified the pendingTasks by their own.
+	go j.aggregateTasks()
 	go j.extractPendingTasks()
 	go j.checkNeverEndingTasks()
-	go j.agregateTasks()
 	go j.jobsStateChanger()
 }
 
@@ -60,10 +62,13 @@ type Operation struct {
 	v OperationValue
 }
 
-func (j *JobsHandler) agregateTasks() {
+func (j *JobsHandler) aggregateTasks() {
+	log.Println("Starting tasks agregator")
 	for {
 		select {
 		case op := <-j.opChan:
+			log.Println("Received operation: " + op.Type)
+			log.Println("Tasks size: " + strconv.Itoa(len(op.v.t)) + "from queue: " + string(op.v.qid))
 			switch op.Type {
 			case OperationAdd:
 				j.PendingTasks[op.v.qid] = append(j.PendingTasks[op.v.qid], op.v.t...)
@@ -80,18 +85,21 @@ func removeTask(task *storage.Task, tasks []*storage.Task) []*storage.Task{
 	returningTasks := []*storage.Task{}
 	for i, t := range tasks {
 		if t == task {
-			returningTasks = append(tasks[:i], tasks[i+1])
+			returningTasks = append(tasks[:i], tasks[i+1:]...)
 		}
 	}
 	return returningTasks
 }
 
 func getPendingTasksFromQueue(q *storage.Queue) []*storage.Task{
-	var tasks []*storage.Task
+	tasks := []*storage.Task{}
+	log.Println("Queue jobs:")
+	log.Println(q.Jobs)
 	for _, job := range q.Jobs {
 		if job.State == storage.JobFailed || job.State == storage.JobFinished {
 			continue
 		}
+		log.Println(job.Tasks)
 
 		for _, task := range job.Tasks {
 			if task.State == storage.TaskPending {
@@ -102,14 +110,27 @@ func getPendingTasksFromQueue(q *storage.Queue) []*storage.Task{
 	return tasks
 }
 
+func qAsStr(queues []*storage.Queue) string {
+	str := ""
+	for _, q := range queues {
+		str += " " + q.Name
+	}
+	return str
+}
+
 func (j *JobsHandler) extractPendingTasks() {
 	for {
 		queues := loadQueues(j.S)
 
+		log.Println("Extracting pending tasks from queues " + qAsStr(queues))
+
 		for _, queue := range queues {
 			tasks := getPendingTasksFromQueue(queue)
+			log.Println("pending tasks:")
+			log.Println(tasks)
 			tasksToAdd := []*storage.Task{}
 			for _, task := range tasks {
+				log.Println(task.ID)
 				// prevent duplicates
 				found := false
 				for _, t := range j.PendingTasks[queue.ID] {
@@ -125,10 +146,13 @@ func (j *JobsHandler) extractPendingTasks() {
 					tasksToAdd = append(tasksToAdd, task)
 				}
 			}
-
-			j.opChan <- Operation{
-				Type: OperationAdd,
-				v: OperationValue{queue.ID, tasksToAdd},
+			log.Println("tasks to add:")
+			log.Println(tasksToAdd)
+			if len(tasksToAdd) > 0 {
+				j.opChan <- Operation{
+					Type: OperationAdd,
+					v: OperationValue{queue.ID, tasksToAdd},
+				}
 			}
 		}
 
@@ -147,6 +171,9 @@ func (j *JobsHandler) GetPendingTasks(queueId uint) []*storage.Task {
 		Type: OperationRemove,
 		v:    OperationValue{queueId, tasks},
 	}
+
+	log.Println("Send pending tasks:")
+	log.Println(tasks)
 
 	return tasks
 }

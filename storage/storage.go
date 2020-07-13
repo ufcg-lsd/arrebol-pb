@@ -64,6 +64,10 @@ func (s *Storage) RetrieveQueues() ([]*Queue, error) {
 
 	err := s.driver.Find(&queues).Error
 
+	for _, q := range queues {
+		q.Jobs, _ = s.RetrieveJobsByQueueID(q.ID)
+	}
+
 	return queues, err
 }
 

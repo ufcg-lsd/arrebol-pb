@@ -25,7 +25,7 @@ type Version struct {
 type QueueResponse struct {
 	ID           uint   `json:"ID"`
 	Name         string `json:"Name"`
-	PendingTasks uint   `json:"PendingTasks"`
+	PendingTasks uint   `json:"Tasks"`
 	RunningTasks uint   `json:"RunningTasks"`
 	Nodes        uint   `json:"Nodes"`
 	Workers      uint   `json:"Workers"`

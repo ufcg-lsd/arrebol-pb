@@ -18,13 +18,14 @@ func NewQueuesManager(s *storage.Storage, j *JobsHandler) *QueuesManager {
 	return &QueuesManager{Storage: s, Queues: queues, Schedulers: schedulers}
 }
 
-func loadSchedulers(queues []*storage.Queue, s *storage.Storage, j *JobsHandler) map[int]Scheduler {
-	var schedulers map[uint]Scheduler
+func loadSchedulers(queues []*storage.Queue, s *storage.Storage, j *JobsHandler) map[uint]Scheduler {
+	schedulers := map[uint]Scheduler{}
 	for _, queue := range queues {
 		scheduler := NewScheduler(queue.ID, queue.SchedulingPolicy, j, s)
 		go scheduler.Start()
 		schedulers[queue.ID] = scheduler
 	}
+	return schedulers
 }
 
 func loadQueues(s *storage.Storage) []*storage.Queue {
