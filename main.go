@@ -6,11 +6,11 @@ import (
 	"github.com/ufcg-lsd/arrebol-pb/api"
 	"github.com/ufcg-lsd/arrebol-pb/api/worker"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
+	"os/signal"
+	"syscall"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -37,10 +37,12 @@ func main() {
 	s.Setup()
 	defer s.Driver().Close()
 
-	var jobDispatcher = service.NewDispatcher(s)
-	go jobDispatcher.Start()
+	j := service.NewJobsHandler(s)
+	q := service.NewQueuesManager(s, j)
 
-	a := api.New(s, jobDispatcher)
+	j.Start()
+
+	a := api.New(s, q, j)
 
 	// Shutdown gracefully
 	go func() {
@@ -54,17 +56,17 @@ func main() {
 		}
 	}()
 
-	go startWorkerApi(s)
+	go startWorkerApi(s, q, j)
 
 	if err := a.Start(*apiPort); err != nil {
 		log.Fatal(err.Error())
 	}
 }
 
-func startWorkerApi(storage *storage.Storage) {
+func startWorkerApi(storage *storage.Storage, q *service.QueuesManager, j *service.JobsHandler) {
 	const WorkerApiPort = "8000"
 
-	workerApi := worker.New(storage)
+	workerApi := worker.New(storage, q, j)
 	err := workerApi.Start(WorkerApiPort)
 
 	if err != nil {
