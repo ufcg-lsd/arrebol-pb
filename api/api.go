@@ -19,9 +19,9 @@ package api
 
 import (
 	"context"
-	"github.com/emanueljoivo/arrebol/arrebol"
-	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"net/http"
 )
@@ -29,13 +29,16 @@ import (
 type HttpApi struct {
 	storage *storage.Storage
 	server  *http.Server
-	arrebol *arrebol.Dispatcher
+	queuesManager *service.QueuesManager
+	jobsHandler *service.JobsHandler
 }
 
-func New(storage *storage.Storage, arrebol *arrebol.Dispatcher) *HttpApi {
+func New(storage *storage.Storage, queuesManager *service.QueuesManager,
+jobsHandler *service.JobsHandler) *HttpApi {
 	return &HttpApi{
 		storage: storage,
-		arrebol: arrebol,
+		queuesManager: queuesManager,
+		jobsHandler: jobsHandler,
 	}
 }
 
@@ -56,6 +59,7 @@ func (a *HttpApi) bootRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/v1/version", a.GetVersion).Methods(http.MethodGet)
+	router.HandleFunc("/v1/publickey", a.GetPublicKey).Methods(http.MethodGet)
 
 	router.HandleFunc("/v1/queues", a.CreateQueue).Methods(http.MethodPost)
 	router.HandleFunc("/v1/queues", a.RetrieveQueues).Methods(http.MethodGet)

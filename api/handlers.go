@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/emanueljoivo/arrebol/storage"
 	"github.com/gorilla/mux"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os/exec"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +25,7 @@ type Version struct {
 type QueueResponse struct {
 	ID           uint   `json:"ID"`
 	Name         string `json:"Name"`
-	PendingTasks uint   `json:"PendingTasks"`
+	PendingTasks uint   `json:"Tasks"`
 	RunningTasks uint   `json:"RunningTasks"`
 	Nodes        uint   `json:"Nodes"`
 	Workers      uint   `json:"Workers"`
@@ -111,28 +112,25 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&queue)
 
 	if err != nil {
-		write(w, http.StatusBadRequest, ErrorResponse{
+		Write(w, http.StatusBadRequest, ErrorResponse{
 			Message: "Maybe the body has a wrong shape",
 			Status:  http.StatusBadRequest,
 		})
+		return
 	}
 
-	err = a.storage.SaveQueue(&queue)
+	err = a.queuesManager.AddQueue(&queue, a.jobsHandler)
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, ErrorResponse{
-			Message: "Error while trying to save the new queue",
+		Write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
-	} else {
-		super := a.arrebol.HireSupervisor(&queue)
-
-		go super.Start()
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, queue.ID)
+		return
 	}
+
+	//Todo: check if the queue.ID is set at this point
+	Write(w, http.StatusCreated, map[string]uint{"queue_id": queue.ID})
 }
 
 func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +159,7 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 	queueID, err := strconv.Atoi(queueIDStr)
 
 	if err != nil {
-		write(w, http.StatusBadRequest, ErrorResponse{
+		Write(w, http.StatusBadRequest, ErrorResponse{
 			Message: "Malformed request",
 			Status:  http.StatusBadRequest,
 		})
@@ -170,16 +168,16 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 		queue, err := a.storage.RetrieveQueue(uint(queueID))
 
 		if err != nil {
-			write(w, http.StatusNotFound, ErrorResponse{
+			Write(w, http.StatusNotFound, ErrorResponse{
 				Message: fmt.Sprintf("Queue with ID %d not found", queueID),
 				Status:  http.StatusNotFound,
 			})
 		} else {
-			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+			pendingTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
+			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(queue.Workers)))
 
-			write(w, http.StatusOK, &response)
+			Write(w, http.StatusOK, &response)
 		}
 	}
 }
@@ -205,19 +203,20 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	queues, err := a.storage.RetrieveQueues()
 
 	if err != nil {
-		write(w, http.StatusNotFound, ErrorResponse{
+		Write(w, http.StatusNotFound, ErrorResponse{
 			Message: fmt.Sprintf("%v", err),
 			Status:  http.StatusNotFound,
 		})
 	} else {
 
 		for _, queue := range queues {
-			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
-			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)))
+			pendingTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
+			workers, _ := a.storage.RetrieveWorkersByQueueID(queue.ID)
+			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(workers)))
 			response = append(response, curQueue)
 		}
-		write(w, http.StatusOK, response)
+		Write(w, http.StatusOK, response)
 	}
 }
 
@@ -261,29 +260,18 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 	job := extractFromSpec(jobSpec)
 
 	queueID, _ := strconv.Atoi(queueIDStr)
-	queue, err := a.storage.RetrieveQueue(uint(queueID))
+
+	err = a.queuesManager.AddJob(uint(queueID), job)
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, ErrorResponse{
+		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
-	} else {
-		queue.Jobs = append(queue.Jobs, job)
-		err = a.storage.SaveQueue(queue)
-		if err != nil {
-			write(w, http.StatusInternalServerError, ErrorResponse{
-				Message: err.Error(),
-				Status:  http.StatusInternalServerError,
-			})
-		}
-
-		a.arrebol.AcceptJob(job)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, job.ID)
+		return
 	}
+
+	Write(w, http.StatusCreated, map[string]uint{"job_id":job.ID})
 }
 
 func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
@@ -316,12 +304,12 @@ func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
 	jobs, err := a.storage.RetrieveJobsByQueueID(uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusInternalServerError, ErrorResponse{
+		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
 	} else {
-		write(w, http.StatusOK, newJobResponses(jobs))
+		Write(w, http.StatusOK, newJobResponses(jobs))
 	}
 }
 
@@ -360,25 +348,25 @@ func (a *HttpApi) RetrieveJobByQueue(w http.ResponseWriter, r *http.Request) {
 	job, err := a.storage.RetrieveJobByQueue(uint(jobID), uint(queueID))
 
 	if err != nil {
-		write(w, http.StatusNotFound, ErrorResponse{
+		Write(w, http.StatusNotFound, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusNotFound,
 		})
 	} else {
-		write(w, http.StatusOK, newJobResponse(job))
+		Write(w, http.StatusOK, newJobResponse(job))
 	}
 }
 
 func (a *HttpApi) AddNode(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+	Write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *HttpApi) RetrieveNode(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+	Write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *HttpApi) RetrieveNodes(w http.ResponseWriter, r *http.Request) {
-	write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
+	Write(w, http.StatusAccepted, `{"Message": "no support yet"}`)
 }
 
 func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
@@ -394,8 +382,26 @@ func (a *HttpApi) GetVersion(w http.ResponseWriter, r *http.Request) {
 	//   '200':
 	//     description: The system version
 	//     type: string
-	write(w, http.StatusOK, Version{Tag: 
+	Write(w, http.StatusOK, Version{Tag:
                                   os.Getenv("VERSION_TAG"), Name: os.Getenv("VERSION_NAME")})
+}
+
+func (a *HttpApi) GetPublicKey(w http.ResponseWriter, r *http.Request) {
+	publickey, err := ioutil.ReadFile(os.Getenv("ARREBOL_PUB_KEY_PATH"))
+	if err != nil {
+		Write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: "Error while trying to get arrebol public key",
+			Status:  http.StatusInternalServerError,
+		})
+	}
+	_, err = w.Write(publickey)
+	if err != nil {
+		Write(w, http.StatusInternalServerError, ErrorResponse{
+			Message: "Error while trying to get arrebol public key",
+			Status:  http.StatusInternalServerError,
+		})
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
@@ -409,7 +415,7 @@ func (a *HttpApi) Swagger(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, gopath_str+"/src/github.com/emanueljoivo/arrebol/api/swagger.json")
 }
 
-func write(w http.ResponseWriter, statusCode int, i interface{}) {
+func Write(w http.ResponseWriter, statusCode int, i interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(i); err != nil {
@@ -463,13 +469,14 @@ func newCommandResponse(commands []*storage.Command) []*CommandResponse {
 	return cr
 }
 
-func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint) *QueueResponse {
+func responseFromQueue(queue *storage.Queue, pendingTasks uint, runningTasks uint, workers uint) *QueueResponse {
 	return &QueueResponse{
 		ID:           queue.ID,
 		Name:         queue.Name,
 		PendingTasks: pendingTasks,
 		RunningTasks: runningTasks,
 		Nodes:        uint(len(queue.Nodes)),
+		Workers: workers,
 	}
 }
 

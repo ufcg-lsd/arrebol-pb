@@ -2,16 +2,16 @@ package main
 
 import (
 	"flag"
-	"github.com/emanueljoivo/arrebol/arrebol"
-	"log"
-	"os"
+	"github.com/joho/godotenv"
+	"github.com/ufcg-lsd/arrebol-pb/api"
+	"github.com/ufcg-lsd/arrebol-pb/api/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/service"
 	"os/signal"
 	"syscall"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
+	"log"
+	"os"
 	"time"
-
-	"github.com/emanueljoivo/arrebol/api"
-	"github.com/emanueljoivo/arrebol/storage"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -37,10 +37,12 @@ func main() {
 	s.Setup()
 	defer s.Driver().Close()
 
-	var jobDispatcher = arrebol.NewDispatcher(s)
-	go jobDispatcher.Start()
+	j := service.NewJobsHandler(s)
+	q := service.NewQueuesManager(s, j)
 
-	a := api.New(s, jobDispatcher)
+	j.Start()
+
+	a := api.New(s, q, j)
 
 	// Shutdown gracefully
 	go func() {
@@ -54,7 +56,20 @@ func main() {
 		}
 	}()
 
+	go startWorkerApi(s, q, j)
+
 	if err := a.Start(*apiPort); err != nil {
+		log.Fatal(err.Error())
+	}
+}
+
+func startWorkerApi(storage *storage.Storage, q *service.QueuesManager, j *service.JobsHandler) {
+	const WorkerApiPort = "8000"
+
+	workerApi := worker.New(storage, q, j)
+	err := workerApi.Start(WorkerApiPort)
+
+	if err != nil {
 		log.Fatal(err.Error())
 	}
 }

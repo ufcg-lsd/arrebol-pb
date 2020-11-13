@@ -1,14 +1,14 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
-	"github.com/emanueljoivo/arrebol/arrebol/errors"
 	"github.com/jinzhu/gorm"
 )
 
 func (s *Storage) DropTablesIfExist() *gorm.DB {
 	return s.driver.DropTableIfExists(&Command{}, &TaskConfig{}, &TaskMetadata{},
-		&Task{}, &Job{}, &ResourceNode{}, &Queue{})
+		&Task{}, &Job{}, &ResourceNode{}, &Queue{}, &Worker{})
 }
 
 func (s *Storage) CreateTables() {
@@ -20,9 +20,14 @@ func (s *Storage) CreateTables() {
 		"jobs": &Job{},
 		"resource_nodes": &ResourceNode{},
 		"queues": &Queue{},
+		"workers": &Worker{},
 	}
 
 	for _, v := range tables {
+		if(s.driver.HasTable(v)) {
+			continue
+		}
+
 		err, _ := s.CreateTable(v)
 
 		if err != nil {
@@ -61,11 +66,12 @@ func (s *Storage) ConfigureSchema() {
 		&ResourceNode{}).AddForeignKey(
 		"queue_id", "queues(id)", "CASCADE", "CASCADE").Model(
 		&Job{}).AddForeignKey(
-		"queue_id", "queues(id)", "CASCADE", "CASCADE")
+		"queue_id", "queues(id)", "CASCADE", "CASCADE").Model(
+		&Worker{}).AddForeignKey("queue_id", "queues(id)", "CASCADE", "CASCADE")
 }
 
 func (s *Storage) CreateSchema() {
-	s.DropTablesIfExist()
+	//s.DropTablesIfExist()
 	s.CreateTables()
 	s.AutoMigrate()
 	s.ConfigureSchema()
@@ -74,9 +80,11 @@ func (s *Storage) CreateSchema() {
 // swagger:model Queue
 type Queue struct {
 	gorm.Model
-	Name  string          `json:"Name"`
-	Jobs  []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
-	Nodes []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+	Name             string          `json:"Name"`
+	Jobs             []*Job          `json:"Jobs" gorm:"ForeignKey:QueueID"`
+	Workers          []*Worker       `json:"Workers" gorm:"ForeignKey:QueueID"`
+	Nodes            []*ResourceNode `json:"Nodes" gorm:"ForeignKey:QueueID"`
+	SchedulingPolicy Policy          `json:"Policy"`
 }
 
 type ResourceState uint8
@@ -118,10 +126,25 @@ type Job struct {
 	Tasks   []*Task  `json:"Tasks" gorm:"ForeignKey:JobID"`
 }
 
+type Worker struct {
+	ID      string  `json:"Id"`
+	VCPU    float32 `json:"Vcpu"`
+	RAM     uint32  `json:"Ram"` //Megabytes
+	QueueID uint    `json:"QueueID, omitempty"`
+}
+
+func (w *Worker) Equals(o *Worker) bool {
+	if o != nil && w.ID == o.ID {
+		return true
+	}
+	return false
+}
+
 type TaskState uint8
 
 const (
 	TaskPending TaskState = iota
+	TaskDispatched
 	TaskRunning
 	TaskFinished
 	TaskFailed
@@ -138,6 +161,8 @@ type Task struct {
 	Config   []TaskConfig   `json:"Config" gorm:"ForeignKey:TaskID"`
 	Metadata []TaskMetadata `json:"Metadata" gorm:"ForeignKey:TaskID"`
 	Commands []*Command     `json:"Commands" gorm:"ForeignKey:TaskID"`
+	ReportInterval int64 `json:"ReportInterval"`
+	Progress int
 }
 
 type TaskConfig struct {
@@ -174,3 +199,6 @@ type Command struct {
 	RawCommand string       `json:"RawCommand"`
 	State      CommandState `json:"State"`
 }
+
+type Policy uint8
+
