@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"strconv"
@@ -20,7 +19,7 @@ func NewManager(storage *storage.Storage) *Manager {
 //Join selects a queue for Worker to work on and joins him to that queue.
 //If a problem occurs at the join, an error is returned and the queue ID returned is 0 by default,
 //but the only error indicator is if the err variable is not null.
-func (m *Manager) Join(w worker.Worker) (uint, error) {
+func (m *Manager) Join(w storage.Worker) (uint, error) {
 	queueId := m.selectQueue(w)
 	w.QueueID = queueId
 	queue, err := m.storage.RetrieveQueue(queueId)
@@ -36,7 +35,7 @@ func (m *Manager) Join(w worker.Worker) (uint, error) {
 	return queueId, nil
 }
 
-func (m *Manager) selectQueue(w worker.Worker) uint {
+func (m *Manager) selectQueue(w storage.Worker) uint {
 	log.Println("Selecting a queue for worker [" + w.ID + "]")
 	return 1
 }
