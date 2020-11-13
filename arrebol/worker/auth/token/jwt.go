@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
 	"github.com/ufcg-lsd/arrebol-pb/crypto"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"os"
 	"time"
 )
@@ -24,7 +24,7 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func NewToken(worker *worker.Worker) (Token, error){
+func NewToken(worker *storage.Worker) (Token, error){
 	expirationTime := time.Now().Add(ExpirationTime)
 	claims := &Claims{
 		QueueId:        worker.QueueID,
