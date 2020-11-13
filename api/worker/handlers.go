@@ -4,17 +4,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/gorilla/mux"
 	"github.com/ufcg-lsd/arrebol-pb/api"
-	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker"
+	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth"
 	"github.com/ufcg-lsd/arrebol-pb/arrebol/worker/auth/token"
+	"github.com/ufcg-lsd/arrebol-pb/storage"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 const SignatureHeader string = "Signature"
 const PublicKeyHeader string = "Public-Key"
 const WrongBodyMsg string = "Maybe the body has a wrong shape"
-
+const TokenKey string = "arrebol-worker-token"
 type TokenResponse struct {
 	ArrebolWorkerToken string
 }
@@ -25,7 +28,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		signature string
 		encodedPublicKey string
 		publicKey []byte
-		_worker   *worker.Worker
+		_worker   *storage.Worker
 		_token    token.Token
 		queueId   uint
 	)
@@ -67,7 +70,7 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if queueId, err = a.manager.Join(*_worker); err != nil {
+	if queueId, err = a.workerManager.Join(*_worker); err != nil {
 		WriteBadRequest(&w, err.Error())
 		return
 	}
@@ -79,7 +82,64 @@ func (a *WorkerApi) AddWorker(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Worker [" + _worker.ID + "] has been successfully joined")
 	log.Println("Worker [" + _worker.ID + "] Token: " + _token.String())
-	api.Write(w, http.StatusCreated, map[string]string{"arrebol-worker-token": _token.String()})
+	api.Write(w, http.StatusCreated, map[string]string{TokenKey: _token.String()})
+}
+
+func (a *WorkerApi) GetTask(w http.ResponseWriter, r *http.Request) {
+	var (
+		signature string
+		err       error
+		reqToken  string
+	)
+
+	if signature, err = GetHeader(r, SignatureHeader); err != nil {
+		WriteBadRequest(&w, "The "+ SignatureHeader + " is not in the request header.")
+	}
+
+	params := mux.Vars(r)
+	workerId := params["wid"]
+	queueId := params["qid"]
+	endpoint := "/v1/workers/"+workerId+"/queues/"+queueId +"/tasks"
+
+	if ok, err := auth.CheckSignature([]byte(endpoint), []byte(signature), workerId); !ok || err != nil {
+		api.Write(w, http.StatusUnauthorized, api.ErrorResponse{
+			Message: "The signature is not valid",
+			Status:  http.StatusUnauthorized,
+		})
+	}
+
+	if reqToken, err = GetHeader(r, TokenKey); err != nil {
+		WriteBadRequest(&w, "The "+TokenKey+ " is not in the request header.")
+	}
+
+	parsedToken := token.Token(reqToken)
+	if err = a.auth.Authorize(&parsedToken); err != nil {
+		api.Write(w, http.StatusForbidden, api.ErrorResponse{
+			Message: "Authorization error. Invalid token.",
+			Status:  http.StatusForbidden,
+		})
+	}
+
+	worker := a.storage.RetrieveWorker(workerId)
+
+	queueID, err := strconv.Atoi(queueId)
+
+	queueScheduler, err := a.queuesManager.GetQueueScheduler(uint(queueID))
+
+	if err != nil {
+		api.Write(w, http.StatusNotFound, api.ErrorResponse{
+			Message: err.Error(),
+			Status:  404,
+		})
+	}
+
+	task, err := queueScheduler.Schedule(worker)
+
+	if err != nil || task == nil {
+		api.Write(w, http.StatusNoContent, nil)
+	}
+
+	api.Write(w, http.StatusOK, task)
 }
 
 func GetHeader(r *http.Request, key string) (string, error) {
