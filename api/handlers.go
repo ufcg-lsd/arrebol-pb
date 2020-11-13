@@ -25,7 +25,7 @@ type Version struct {
 type QueueResponse struct {
 	ID           uint   `json:"ID"`
 	Name         string `json:"Name"`
-	PendingTasks uint   `json:"PendingTasks"`
+	PendingTasks uint   `json:"Tasks"`
 	RunningTasks uint   `json:"RunningTasks"`
 	Nodes        uint   `json:"Nodes"`
 	Workers      uint   `json:"Workers"`
@@ -116,31 +116,21 @@ func (a *HttpApi) CreateQueue(w http.ResponseWriter, r *http.Request) {
 			Message: "Maybe the body has a wrong shape",
 			Status:  http.StatusBadRequest,
 		})
+		return
 	}
 
-	if queue.ID == 0 {
-		Write(w, http.StatusBadRequest, ErrorResponse{
-			Message: "The queue ID can not be 0",
-			Status: http.StatusBadRequest,
-		})
-	}
-
-	err = a.storage.SaveQueue(&queue)
+	err = a.queuesManager.AddQueue(&queue, a.jobsHandler)
 
 	if err != nil {
 		Write(w, http.StatusInternalServerError, ErrorResponse{
-			Message: "Error while trying to save the new queue",
+			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
-	} else {
-		super := a.arrebol.HireSupervisor(&queue)
-
-		go super.Start()
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, queue.ID)
+		return
 	}
+
+	//Todo: check if the queue.ID is set at this point
+	Write(w, http.StatusCreated, map[string]uint{"queue_id": queue.ID})
 }
 
 func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
@@ -183,8 +173,8 @@ func (a *HttpApi) RetrieveQueue(w http.ResponseWriter, r *http.Request) {
 				Status:  http.StatusNotFound,
 			})
 		} else {
-			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			pendingTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
 			response := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(queue.Workers)))
 
 			Write(w, http.StatusOK, &response)
@@ -220,8 +210,8 @@ func (a *HttpApi) RetrieveQueues(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		for _, queue := range queues {
-			pendingTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskPending)
-			runningTasks := a.storage.RetrieveTasksByState(queue.ID, storage.TaskRunning)
+			pendingTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskPending)
+			runningTasks := a.storage.RetrieveTasksFromQueueByState(queue.ID, storage.TaskRunning)
 			workers, _ := a.storage.RetrieveWorkersByQueueID(queue.ID)
 			curQueue := responseFromQueue(queue, uint(len(pendingTasks)), uint(len(runningTasks)), uint(len(workers)))
 			response = append(response, curQueue)
@@ -270,29 +260,18 @@ func (a *HttpApi) CreateJob(w http.ResponseWriter, r *http.Request) {
 	job := extractFromSpec(jobSpec)
 
 	queueID, _ := strconv.Atoi(queueIDStr)
-	queue, err := a.storage.RetrieveQueue(uint(queueID))
+
+	err = a.queuesManager.AddJob(uint(queueID), job)
 
 	if err != nil {
 		Write(w, http.StatusInternalServerError, ErrorResponse{
 			Message: err.Error(),
 			Status:  http.StatusInternalServerError,
 		})
-	} else {
-		queue.Jobs = append(queue.Jobs, job)
-		err = a.storage.SaveQueue(queue)
-		if err != nil {
-			Write(w, http.StatusInternalServerError, ErrorResponse{
-				Message: err.Error(),
-				Status:  http.StatusInternalServerError,
-			})
-		}
-
-		a.arrebol.AcceptJob(job)
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, `{"ID": "%d"}`, job.ID)
+		return
 	}
+
+	Write(w, http.StatusCreated, map[string]uint{"job_id":job.ID})
 }
 
 func (a *HttpApi) RetrieveJobsByQueue(w http.ResponseWriter, r *http.Request) {
